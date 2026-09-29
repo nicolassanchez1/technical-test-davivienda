@@ -76,6 +76,30 @@ darlos por buenos:
 - **PostgreSQL 17 con `unaccent` y la configuracion `es_unaccent`**: se valido contra la
   imagen real que "especificacion tecnica" (sin tildes) encuentra "Especificación técnica".
 
+### Herramientas propias del repositorio
+
+Para que el trabajo con IA fuera repetible y no dependiera de lo que un asistente recuerde
+en cada sesion, las reglas del proyecto se empaquetaron como agentes y skills versionados
+en `.claude/`:
+
+| Tipo   | Nombre              | Para que sirve                                                                                          |
+| ------ | ------------------- | ------------------------------------------------------------------------------------------------------- |
+| Agente | `backend-engineer`  | Funcionalidad de Spring Boot: casos de uso, puertos, adaptadores JDBC, controladores y sus tests.       |
+| Agente | `search-engineer`   | Camino de busqueda en PostgreSQL: `tsvector`, GIN, ranking, resaltado, `statement_timeout` y `EXPLAIN`. |
+| Agente | `frontend-engineer` | SPA de React: paginas, hooks, cliente de API, conexion SSE unica y visor.                               |
+| Agente | `spec-auditor`      | Solo lectura: audita una rama contra el enunciado y reporta huecos.                                     |
+| Skill  | `verify`            | Ejecuta en local todas las puertas que ejecuta CI y devuelve un unico veredicto.                        |
+| Skill  | `phase`             | Lleva una fase del roadmap de principio a fin con el flujo de git y PR.                                 |
+| Skill  | `contract-sync`     | Regenera el contrato TypeScript desde el OpenAPI y reporta desviaciones.                                |
+
+Cada agente lleva escritas las restricciones que no se pueden negociar (sin `LIKE`, sin
+JPA, sin Lombok, sin inyeccion por campo, sin polling, sin `dangerouslySetInnerHTML`, sin
+texto en espanol dentro de los componentes), de modo que la restriccion viaja con la tarea
+en lugar de repetirse en cada prompt.
+
+Los agentes implementan y reportan; la sesion principal revisa, prepara y commitea. Ningun
+agente hace commits.
+
 ## Prompts Clave
 
 | Objetivo            | Prompt (resumido)                                                                                                                                       | Refinamiento aplicado                                                                                                   |

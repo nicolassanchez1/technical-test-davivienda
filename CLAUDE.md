@@ -185,6 +185,13 @@ ORDER BY p.rank DESC;
 - Application: `APP_STORAGE_DIR`, `APP_MAX_FILE_SIZE_MB=20`, `APP_MAX_FILES_PER_UPLOAD=10`, `APP_SEARCH_TIMEOUT_MS=900`, `APP_SEARCH_MAX_PAGE_SIZE=50`, `APP_WORKER_CONCURRENCY=4`, `APP_STUCK_PROCESSING_MINUTES=10`, `APP_SSE_HEARTBEAT_MS=15000`.
 - Ports: `API_PORT=8081`, `WEB_PORT=8080`.
 
+## Agent toolkit
+Development is driven through repository-scoped agents and skills under `.claude/`, committed so the workflow is reproducible by anyone who clones the repo.
+- Agents: `backend-engineer` (Spring Boot features), `search-engineer` (PostgreSQL full-text path and latency), `frontend-engineer` (React SPA), `spec-auditor` (read-only audit of a branch against the spec).
+- Skills: `verify` (every local gate CI also runs), `phase` (one roadmap phase end to end under the git and PR workflow), `contract-sync` (regenerate the shared TypeScript contract and report drift).
+- Agents implement and report; the main session reviews, stages and commits. Agents never commit.
+- `.claude/settings.local.json` stays gitignored; the agents and skills do not.
+
 ## Git & PR workflow (strict)
 - Never push to `main` (only exception: the bootstrap commit of an empty repo). One branch + one PR per phase, created from an up-to-date `main`. Branches: `feat/…`, `chore/…`, `ci/…`, `docs/…`, `refactor/…`.
 - Atomic commits, Conventional Commits: `type(scope): subject`, English, imperative, ≤ 72 chars; body only when the why isn't obvious. Scopes: shared, backend, worker, frontend, infra, ci, docs. Every commit builds and passes lint and its tests; tests ship in the same commit as the code they cover. Stage files explicitly.
