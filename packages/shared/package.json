@@ -1,0 +1,19 @@
+{
+  "name": "@technical-test-davivienda/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "types": "./src/api.d.ts",
+  "files": [
+    "src",
+    "openapi.json"
+  ],
+  "scripts": {
+    "contract:generate": "openapi-typescript openapi.json --output src/api.d.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  }
+}

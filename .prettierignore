@@ -6,3 +6,7 @@ spec
 
 # Project memory: kept verbatim, formatting it would rewrite the source of truth
 CLAUDE.md
+
+# Generated from the backend OpenAPI document; formatting it would fight the contract check
+packages/shared/openapi.json
+packages/shared/src/api.d.ts

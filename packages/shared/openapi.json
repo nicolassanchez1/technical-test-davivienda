@@ -1,0 +1,10 @@
+{
+  "openapi" : "3.1.0",
+  "info" : {
+    "title" : "Buscador y Visor de Documentos Tecnicos",
+    "description" : "Carga, indexacion asincrona, busqueda full-text y visualizacion de documentos",
+    "version" : "0.1.0"
+  },
+  "paths" : { },
+  "components" : { }
+}

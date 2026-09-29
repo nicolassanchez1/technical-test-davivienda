@@ -12,13 +12,19 @@
   },
   "scripts": {
     "prepare": "husky",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint": "pnpm run lint:ts && pnpm run lint:java",
+    "lint:ts": "eslint .",
+    "lint:java": "./backend/mvnw -B -f backend/pom.xml spotless:check",
+    "lint:fix": "eslint . --fix && ./backend/mvnw -B -f backend/pom.xml spotless:apply",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "pnpm --recursive typecheck",
-    "build": "pnpm --recursive --sequential build",
-    "test": "pnpm --recursive test"
+    "test": "pnpm run test:java && pnpm run test:ts",
+    "test:java": "./backend/mvnw -B -f backend/pom.xml test",
+    "test:ts": "pnpm --recursive test",
+    "test:integration": "./backend/mvnw -B -f backend/pom.xml verify",
+    "build": "./backend/mvnw -B -f backend/pom.xml package && pnpm --recursive build",
+    "contract:generate": "pnpm run test:integration && pnpm --filter @technical-test-davivienda/shared contract:generate"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.3",
