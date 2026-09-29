@@ -1,0 +1,21 @@
+{
+  "name": "technical-test-davivienda",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Buscador y visor de documentos tecnicos con indexacion asincrona y busqueda full-text",
+  "author": "nicolassanchez1 <nicolassanchez115@hotmail.com>",
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@11.21.0",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "build": "pnpm --recursive --sequential build",
+    "typecheck": "pnpm --recursive typecheck",
+    "test": "pnpm --recursive test"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}
