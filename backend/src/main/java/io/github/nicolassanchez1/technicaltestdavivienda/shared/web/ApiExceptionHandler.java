@@ -1,5 +1,6 @@
 package io.github.nicolassanchez1.technicaltestdavivienda.shared.web;
 
+import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.DuplicateDocumentException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.sql.SQLException;
@@ -58,6 +59,21 @@ public class ApiExceptionHandler {
     ProblemDetail handleUnknownRoute(NoResourceFoundException exception, HttpServletRequest request) {
         return problem(
                 HttpStatus.NOT_FOUND, "urn:problem-type:resource-not-found", "The resource does not exist.", request);
+    }
+
+    /**
+     * The checksum uniqueness rule lives in the domain, so its exception is mapped here rather than
+     * carrying an HTTP status of its own: the domain stays free of the web layer.
+     */
+    @ExceptionHandler(DuplicateDocumentException.class)
+    ProblemDetail handleDuplicateDocument(DuplicateDocumentException exception, HttpServletRequest request) {
+        ProblemDetail problem = problem(
+                HttpStatus.CONFLICT,
+                DuplicateDocumentException.PROBLEM_TYPE,
+                "A document with the same content is already stored.",
+                request);
+        problem.setProperty("existingDocumentId", exception.existingDocumentId().toString());
+        return problem;
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
