@@ -5,7 +5,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.DuplicateDocumentException;
 import java.sql.SQLException;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -18,6 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 class ApiExceptionHandlerTest {
+
+    private static final UUID EXISTING_DOCUMENT_ID = UUID.fromString("1f0d8d0e-6b1a-4f2c-9a4d-0c7e9f5b1a23");
 
     private MockMvc mockMvc;
 
@@ -50,6 +54,14 @@ class ApiExceptionHandlerTest {
         mockMvc.perform(get("/boom/duplicate"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.type").value("urn:problem-type:resource-conflict"));
+    }
+
+    @Test
+    void reportsADuplicateDocumentWithTheIdThatAlreadyHoldsTheContent() throws Exception {
+        mockMvc.perform(get("/boom/duplicate-document"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.type").value(DuplicateDocumentException.PROBLEM_TYPE))
+                .andExpect(jsonPath("$.existingDocumentId").value(EXISTING_DOCUMENT_ID.toString()));
     }
 
     @Test
@@ -99,6 +111,11 @@ class ApiExceptionHandlerTest {
         @GetMapping("/boom/duplicate")
         void duplicate() {
             throw new DataIntegrityViolationException("documents_sha256_unique");
+        }
+
+        @GetMapping("/boom/duplicate-document")
+        void duplicateDocument() {
+            throw new DuplicateDocumentException(EXISTING_DOCUMENT_ID);
         }
 
         @GetMapping("/boom/too-large")
