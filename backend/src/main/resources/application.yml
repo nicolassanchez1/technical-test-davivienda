@@ -1,3 +1,14 @@
+# Defaults for local runs. Every value is overridden by its APP_* environment variable.
+app:
+  storage-dir: ./storage
+  max-file-size-mb: 20
+  max-files-per-upload: 10
+  search-timeout-ms: 900
+  search-max-page-size: 50
+  worker-concurrency: 4
+  stuck-processing-minutes: 10
+  sse-heartbeat-ms: 15000
+
 spring:
   application:
     name: technical-test-davivienda
