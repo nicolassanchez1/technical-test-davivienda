@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: technical-test-davivienda
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  servlet:
+    context-path: /api
+
+# Actuator is mounted at the context root so health is served as /api/health.
+management:
+  endpoints:
+    web:
+      base-path: /
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /docs
