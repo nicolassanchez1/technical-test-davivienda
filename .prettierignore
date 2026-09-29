@@ -1,0 +1,8 @@
+pnpm-lock.yaml
+dist
+coverage
+node_modules
+spec
+
+# Project memory: kept verbatim, formatting it would rewrite the source of truth
+CLAUDE.md
