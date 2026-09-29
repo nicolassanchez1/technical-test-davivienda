@@ -1,0 +1,137 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+  JAVA_VERSION: '21'
+
+jobs:
+  quality:
+    name: Lint, format and typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+      - run: pnpm install --frozen-lockfile
+      - name: ESLint
+        run: pnpm run lint:ts
+      - name: Prettier
+        run: pnpm run format:check
+      - name: TypeScript
+        run: pnpm run typecheck
+      - name: Spotless
+        run: pnpm run lint:java
+      - name: Reject unindexed search constructs
+        run: |
+          if grep -rniE '\b(i?like|similar[[:space:]]+to)\b' backend/src/main; then
+            echo "::error::Search must use PostgreSQL full-text search, never LIKE or equivalents."
+            exit 1
+          fi
+          echo "No forbidden search constructs found."
+
+  commits:
+    name: Commit messages and authorship
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Conventional Commits
+        run: >-
+          pnpm exec commitlint --verbose
+          --from ${{ github.event.pull_request.base.sha }}
+          --to ${{ github.event.pull_request.head.sha }}
+      - name: Reject AI attribution
+        run: >-
+          node scripts/check-attribution.mjs
+          --range ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
+
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+      - run: pnpm install --frozen-lockfile
+      - name: Backend unit tests
+        run: pnpm run test:java
+      - name: Frontend unit tests
+        run: pnpm --recursive test:coverage
+
+  contract:
+    name: Shared contract is up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+      - run: pnpm install --frozen-lockfile
+      - name: Regenerate the TypeScript contract from the backend OpenAPI document
+        run: pnpm run contract:generate
+      - name: Fail if the committed contract differs
+        run: |
+          if ! git diff --exit-code -- packages/shared; then
+            echo "::error::packages/shared is stale. Run 'pnpm contract:generate' and commit the result."
+            exit 1
+          fi
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+      - run: pnpm install --frozen-lockfile
+      - name: Build all workspaces
+        run: pnpm run build
