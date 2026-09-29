@@ -1,0 +1,2 @@
+node scripts/check-attribution.mjs --message-file "$1"
+pnpm exec commitlint --edit "$1"
