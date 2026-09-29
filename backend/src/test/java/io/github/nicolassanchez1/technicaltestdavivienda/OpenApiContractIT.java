@@ -4,11 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.github.nicolassanchez1.technicaltestdavivienda.support.AbstractIntegrationTest;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.web.client.RestClient;
 
@@ -16,8 +16,7 @@ import org.springframework.web.client.RestClient;
  * Exports the OpenAPI document that the TypeScript contract in packages/shared is generated
  * from. The Java DTOs are the single source of truth; CI regenerates and fails on any diff.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class OpenApiContractIT {
+class OpenApiContractIT extends AbstractIntegrationTest {
 
     private static final String DEFAULT_OUTPUT = "../packages/shared/openapi.json";
 
