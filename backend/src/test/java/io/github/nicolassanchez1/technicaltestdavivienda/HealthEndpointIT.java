@@ -31,6 +31,13 @@ class HealthEndpointIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void reportsEveryBackingServiceItDependsOn() {
+        String body = client().get().uri("/api/health").retrieve().body(String.class);
+
+        assertThat(body).contains("\"db\"").contains("\"rabbit\"").contains("PostgreSQL");
+    }
+
+    @Test
     void doesNotServeHealthOutsideTheApiPrefix() {
         assertThatThrownBy(() -> client().get().uri("/health").retrieve().body(String.class))
                 .isInstanceOf(HttpClientErrorException.class)
