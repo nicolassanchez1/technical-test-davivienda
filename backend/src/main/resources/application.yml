@@ -6,6 +6,7 @@ spring:
       enabled: true
 
 server:
+  port: ${API_PORT:8081}
   servlet:
     context-path: /api
 
