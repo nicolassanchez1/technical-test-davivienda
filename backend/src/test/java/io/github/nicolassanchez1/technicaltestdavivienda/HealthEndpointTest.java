@@ -17,31 +17,32 @@ import org.springframework.web.client.RestClient;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class HealthEndpointTest {
 
-  @LocalServerPort private int port;
+    @LocalServerPort
+    private int port;
 
-  private RestClient client() {
-    return RestClient.create("http://localhost:" + port);
-  }
+    private RestClient client() {
+        return RestClient.create("http://localhost:" + port);
+    }
 
-  @Test
-  void reportsApplicationHealthUnderTheApiPrefix() {
-    String body = client().get().uri("/api/health").retrieve().body(String.class);
+    @Test
+    void reportsApplicationHealthUnderTheApiPrefix() {
+        String body = client().get().uri("/api/health").retrieve().body(String.class);
 
-    assertThat(body).contains("\"status\":\"UP\"");
-  }
+        assertThat(body).contains("\"status\":\"UP\"");
+    }
 
-  @Test
-  void doesNotServeHealthOutsideTheApiPrefix() {
-    assertThatThrownBy(() -> client().get().uri("/health").retrieve().body(String.class))
-        .isInstanceOf(HttpClientErrorException.class)
-        .extracting(error -> ((HttpClientErrorException) error).getStatusCode())
-        .isEqualTo(HttpStatus.NOT_FOUND);
-  }
+    @Test
+    void doesNotServeHealthOutsideTheApiPrefix() {
+        assertThatThrownBy(() -> client().get().uri("/health").retrieve().body(String.class))
+                .isInstanceOf(HttpClientErrorException.class)
+                .extracting(error -> ((HttpClientErrorException) error).getStatusCode())
+                .isEqualTo(HttpStatus.NOT_FOUND);
+    }
 
-  @Test
-  void publishesAnOpenApiDocument() {
-    String body = client().get().uri("/api/v3/api-docs").retrieve().body(String.class);
+    @Test
+    void publishesAnOpenApiDocument() {
+        String body = client().get().uri("/api/v3/api-docs").retrieve().body(String.class);
 
-    assertThat(body).contains("\"openapi\"");
-  }
+        assertThat(body).contains("\"openapi\"");
+    }
 }
