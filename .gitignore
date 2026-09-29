@@ -20,6 +20,10 @@ coverage/
 storage/
 uploads/
 
+# Java / Maven build output
+target/
+*.class
+
 # Logs
 *.log
 npm-debug.log*
@@ -41,5 +45,9 @@ spec/
 .DS_Store
 Thumbs.db
 .idea/
+*.iml
+.classpath
+.project
+.settings/
 .vscode/*
 !.vscode/extensions.json
