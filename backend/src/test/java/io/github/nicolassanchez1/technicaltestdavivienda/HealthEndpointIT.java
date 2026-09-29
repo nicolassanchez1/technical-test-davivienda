@@ -3,8 +3,8 @@ package io.github.nicolassanchez1.technicaltestdavivienda;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.github.nicolassanchez1.technicaltestdavivienda.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpClientErrorException;
@@ -14,8 +14,7 @@ import org.springframework.web.client.RestClient;
  * Exercises the running servlet container because the context path and the Actuator base
  * path together decide the public health URL; a slice test would not catch a mismatch.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class HealthEndpointTest {
+class HealthEndpointIT extends AbstractIntegrationTest {
 
     @LocalServerPort
     private int port;

@@ -12,6 +12,13 @@ app:
 spring:
   application:
     name: technical-test-davivienda
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/documents}
+    username: ${SPRING_DATASOURCE_USERNAME:documents}
+    password: ${SPRING_DATASOURCE_PASSWORD:change-me}
+  # Only the api profile owns the schema; the worker never migrates.
+  flyway:
+    enabled: true
   threads:
     virtual:
       enabled: true
