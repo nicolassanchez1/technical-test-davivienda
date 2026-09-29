@@ -19,6 +19,11 @@ spring:
   # Only the api profile owns the schema; the worker never migrates.
   flyway:
     enabled: true
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:documents}
+    password: ${SPRING_RABBITMQ_PASSWORD:change-me}
   threads:
     virtual:
       enabled: true
