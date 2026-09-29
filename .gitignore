@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Test output
+coverage/
+.nyc_output/
+
+# Environment: never commit real values, only .env.example
+.env
+.env.*
+!.env.example
+
+# Uploaded documents (runtime storage)
+storage/
+uploads/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Caches
+.cache/
+.vite/
+.turbo/
+.eslintcache
+
+# Technical test spec: the repo is public, never publish it
+spec/
+
+# Local agent settings
+.claude/settings.local.json
+
+# OS and editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
