@@ -17,9 +17,18 @@ paginación, y visualizarlos en la aplicación con notificaciones de estado en t
 
 ```bash
 cp .env.example .env
-docker compose up -d      # PostgreSQL y RabbitMQ
+docker compose up -d --build   # PostgreSQL, RabbitMQ y la API
 pnpm install
 ```
+
+La API queda en `http://localhost:8081/api`:
+
+| Recurso                          | URL                                     |
+| -------------------------------- | --------------------------------------- |
+| Salud (base de datos y RabbitMQ) | `http://localhost:8081/api/health`      |
+| Swagger UI                       | `http://localhost:8081/api/docs`        |
+| Documento OpenAPI                | `http://localhost:8081/api/v3/api-docs` |
+| Consola de RabbitMQ              | `http://localhost:15672`                |
 
 | Comando                  | Qué hace                                                     |
 | ------------------------ | ------------------------------------------------------------ |
@@ -31,9 +40,11 @@ pnpm install
 | `pnpm build`             | Empaqueta el backend y construye el frontend                 |
 | `pnpm contract:generate` | Regenera el contrato TypeScript desde el OpenAPI del backend |
 
-El backend arranca en `http://localhost:8081/api` (salud en `/api/health`, Swagger UI en
-`/api/docs`). El frontend de desarrollo arranca con `pnpm --filter @technical-test-davivienda/frontend dev`
-y redirige `/api` al backend.
+El frontend de desarrollo arranca con
+`pnpm --filter @technical-test-davivienda/frontend dev` y redirige `/api` al backend.
+
+Cada respuesta lleva una cabecera `X-Request-Id`; los errores se devuelven como
+`application/problem+json` (RFC 9457) e incluyen ese mismo identificador.
 
 ## Estructura
 

@@ -25,6 +25,34 @@
 - `docker-compose.yml` con PostgreSQL y RabbitMQ, ambos con healthcheck.
 - Workflow de CI con los trabajos `quality`, `commits`, `unit`, `contract` y `build`.
 
+### Fase 1 — Cimientos del backend
+
+- `@ConfigurationProperties` validados que detienen el arranque ante un valor incorrecto.
+- Origen de datos PostgreSQL con `JdbcClient` y migraciones Flyway.
+- Esquema de `documents` y `document_chunks`, con la configuracion de texto `es_unaccent`.
+- Filtro de request id con MDC y logging estructurado ECS.
+- Manejador global de errores que devuelve `ProblemDetail` (RFC 9457).
+- Salud de la aplicacion con base de datos y RabbitMQ.
+- Reglas ArchUnit que sostienen las fronteras hexagonales.
+- Dockerfile multietapa, JaCoCo y el trabajo de integracion en CI.
+
+Verificaciones empiricas de esta fase, de nuevo antes de construir encima:
+
+- **Testcontainers 2.0.5** (la version que gestiona Spring Boot 4) renombro sus modulos:
+  `postgresql` paso a `testcontainers-postgresql` y `junit-jupiter` a
+  `testcontainers-junit-jupiter`; ademas hay que importar su BOM y la clase
+  `PostgreSQLContainer` dejo de ser generica. Con esos ajustes, `@ServiceConnection`
+  funciona sobre Boot 4.
+- **Flyway** no arranca solo con `flyway-core` en Boot 4: la autoconfiguracion vive en
+  `spring-boot-starter-flyway`. Se detecto porque un test de integracion comprobaba que la
+  tabla de historial existiera, no por inspeccion.
+- Las reglas de ArchUnit se probaron introduciendo a proposito una clase que las violaba,
+  para confirmar que fallan cuando deben en lugar de pasar en vacio.
+
+El stack completo se levanto con `docker compose` y se comprobo de extremo a extremo la
+salud con base de datos y RabbitMQ, el eco de `X-Request-Id`, el reemplazo de un valor de
+cabecera inseguro y la respuesta `application/problem+json` en una ruta inexistente.
+
 #### Cambio de stack del backend
 
 El `CLAUDE.md` inicial fijaba NestJS como backend. **Cambie esa decision a Java 21 con
