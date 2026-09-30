@@ -74,12 +74,17 @@ docker compose up -d postgres rabbitmq api worker   # backend sin la web de ngin
 ## Documentos de ejemplo
 
 ```bash
-pnpm seed
+pnpm seed     # carga el corpus de samples/
+pnpm reset    # deja la aplicación vacía, para empezar de cero
 ```
 
 Carga el corpus de [`samples/`](./samples/README.md): seis documentos quedan `INDEXADO` y uno
 —un PDF escaneado sin capa de texto— termina en `ERROR`, que es el comportamiento correcto.
 Ese directorio documenta qué demuestra cada archivo y qué búsquedas conviene probar.
+
+`pnpm reset` borra los documentos, sus fragmentos, los trabajos pendientes y los archivos
+guardados, sin tocar el esquema ni los contenedores: tarda segundos. Si quieres borrar también
+los volúmenes y reconstruir desde cero, usa `docker compose down -v` y vuelve a levantar.
 
 ## Carga de documentos (HU-01)
 
