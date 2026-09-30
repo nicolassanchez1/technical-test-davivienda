@@ -28,7 +28,7 @@ class LocalFileStorageTest {
     private LocalFileStorage storage;
 
     private static AppProperties propertiesFor(Path storageDir) {
-        return new AppProperties(storageDir, 20, 10, 900L, 50, 4, 10, 15_000L);
+        return new AppProperties(storageDir, 20, 10, 900L, 50, 4, 10, 15_000L, 3_600_000L);
     }
 
     private static InputStream stream(String content) {

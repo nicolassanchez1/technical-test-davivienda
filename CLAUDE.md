@@ -147,7 +147,8 @@ ORDER BY p.rank DESC, d.id;
 - Response includes `tookMs`; also send a `Server-Timing` header.
 
 ## Real-time (SSE)
-- `GET /api/events` returns an `SseEmitter`. Event type `document.status`, data `{ documentId, status, errorCode?, occurredAt }`, every event with an `id`. Heartbeat comment every `APP_SSE_HEARTBEAT_MS`. Headers: `Cache-Control: no-cache`, `X-Accel-Buffering: no`.
+- `GET /api/events` returns an `SseEmitter`. Event type `document.status`, data `{ documentId, status, errorCode?, occurredAt }`, every event with an `id` derived from the change itself, so the same change carries the same id on every connection. Heartbeat comment every `APP_SSE_HEARTBEAT_MS`; a comment is also written on subscribe, because the first write is what flushes the response headers. Headers: `Cache-Control: no-cache`, `X-Accel-Buffering: no`.
+- The events endpoint is `@Profile("!worker")`: the worker context still builds `@RestController` beans even with no server, so without it the worker fails to start.
 - The worker publishes to the `documents.status` fanout exchange; every API instance binds an exclusive auto-delete queue and forwards to its own clients.
 - Frontend: ONE global EventSource opened at app start (never one per document). On event → `queryClient.setQueryData` + toast. On (re)connect → one reconciliation fetch for tracked documents still in `PROCESANDO` (that is not polling).
 - nginx for `/api/events`: `proxy_buffering off; proxy_cache off; proxy_http_version 1.1; proxy_set_header Connection ""; proxy_read_timeout 1h;`.
@@ -192,7 +193,7 @@ ORDER BY p.rank DESC, d.id;
 `.env.example`, validated at boot, fail fast:
 - Postgres: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`.
 - RabbitMQ: `RABBITMQ_DEFAULT_USER`, `RABBITMQ_DEFAULT_PASS`, `SPRING_RABBITMQ_HOST`, `SPRING_RABBITMQ_PORT`, `SPRING_RABBITMQ_USERNAME`, `SPRING_RABBITMQ_PASSWORD`.
-- Application: `APP_STORAGE_DIR`, `APP_MAX_FILE_SIZE_MB=20`, `APP_MAX_FILES_PER_UPLOAD=10`, `APP_SEARCH_TIMEOUT_MS=900`, `APP_SEARCH_MAX_PAGE_SIZE=50`, `APP_WORKER_CONCURRENCY=4`, `APP_STUCK_PROCESSING_MINUTES=10`, `APP_SSE_HEARTBEAT_MS=15000`.
+- Application: `APP_STORAGE_DIR`, `APP_MAX_FILE_SIZE_MB=20`, `APP_MAX_FILES_PER_UPLOAD=10`, `APP_SEARCH_TIMEOUT_MS=900`, `APP_SEARCH_MAX_PAGE_SIZE=50`, `APP_WORKER_CONCURRENCY=4`, `APP_STUCK_PROCESSING_MINUTES=10`, `APP_SSE_HEARTBEAT_MS=15000`, `APP_SSE_TIMEOUT_MS=3600000` (must exceed the heartbeat, checked at boot; matches the reverse proxy's `proxy_read_timeout`).
 - Ports: `API_PORT=8081`, `WEB_PORT=8080`.
 
 ## Agent toolkit

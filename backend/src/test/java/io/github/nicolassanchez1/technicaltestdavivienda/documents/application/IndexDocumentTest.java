@@ -79,7 +79,7 @@ class IndexDocumentTest {
     }
 
     @Test
-    void ignoresARepeatedJobForADocumentThatAlreadyFinished() {
+    void doesNotIndexARepeatedJobForADocumentThatAlreadyFinished() {
         Document document = givenProcessingPdf();
         documents.markIndexed(document.id(), 3, 4, 120);
 
@@ -87,8 +87,39 @@ class IndexDocumentTest {
 
         assertThat(extractor.calls).isZero();
         assertThat(chunks.inserted).isEmpty();
-        assertThat(events.published()).isEmpty();
         assertThat(documents.require(document.id()).chunkCount()).isEqualTo(3);
+    }
+
+    @Test
+    void announcesAgainForARepeatedJob() {
+        // A job only comes back for a finished document when the previous attempt failed after its
+        // transaction committed, which is the one window where the broadcast can have been lost.
+        Document document = givenProcessingPdf();
+        documents.markIndexed(document.id(), 3, 4, 120);
+
+        indexDocument.index(document.id());
+
+        assertThat(events.eventsOfType(DocumentStatusChanged.class))
+                .singleElement()
+                .satisfies(event -> {
+                    assertThat(event.documentId()).isEqualTo(document.id());
+                    assertThat(event.status()).isEqualTo(DocumentStatus.INDEXED);
+                });
+    }
+
+    @Test
+    void repeatsTheReasonWhenTheFinishedDocumentHadFailed() {
+        Document document = givenProcessingPdf();
+        documents.markFailed(document.id(), DocumentErrorCode.PDF_NO_TEXT_LAYER, "sin capa de texto");
+
+        indexDocument.index(document.id());
+
+        assertThat(events.eventsOfType(DocumentStatusChanged.class))
+                .singleElement()
+                .satisfies(event -> {
+                    assertThat(event.status()).isEqualTo(DocumentStatus.FAILED);
+                    assertThat(event.errorCode()).isEqualTo(DocumentErrorCode.PDF_NO_TEXT_LAYER);
+                });
     }
 
     @Test

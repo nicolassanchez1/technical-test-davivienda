@@ -29,7 +29,9 @@ class SearchDocumentsTest {
     void setUp() {
         engine = new RecordingSearchEngine();
         searchDocuments = new SearchDocuments(
-                engine, new AppProperties(Path.of("target", "storage"), 20, 10, 900L, MAX_PAGE_SIZE, 4, 10, 15_000L));
+                engine,
+                new AppProperties(
+                        Path.of("target", "storage"), 20, 10, 900L, MAX_PAGE_SIZE, 4, 10, 15_000L, 3_600_000L));
     }
 
     private SearchOutcome search(String query, int page, int pageSize) {

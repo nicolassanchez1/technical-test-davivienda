@@ -2,6 +2,7 @@ package io.github.nicolassanchez1.technicaltestdavivienda.documents.application;
 
 import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.Document;
 import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.DocumentErrorCode;
+import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.DocumentStatus;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -77,12 +78,29 @@ public class IndexDocument {
         }
         Document document = found.get();
         if (document.status().isTerminal()) {
-            log.info("Ignoring a repeated job for document {}, already {}", documentId, document.status());
+            log.info("Repeating the announcement for document {}, already {}", documentId, document.status());
+            announceAgain(document);
             return;
         }
         long startedAt = System.nanoTime();
         Extraction extraction = read(document);
         write(document, extraction, elapsedMillis(startedAt));
+    }
+
+    /**
+     * A job is only redelivered for a finished document when the previous attempt failed after its
+     * transaction committed, which is exactly the window where the broadcast can be lost: the
+     * document is already indexed and no client was ever told. Repeating the announcement is what
+     * closes that window, and a client that did hear the first one discards this by its event id.
+     */
+    private void announceAgain(Document document) {
+        transactions.execute(status -> {
+            events.publishEvent(
+                    document.status() == DocumentStatus.FAILED
+                            ? DocumentStatusChanged.failed(document.id(), document.errorCode())
+                            : DocumentStatusChanged.indexed(document.id()));
+            return null;
+        });
     }
 
     private Extraction read(Document document) {

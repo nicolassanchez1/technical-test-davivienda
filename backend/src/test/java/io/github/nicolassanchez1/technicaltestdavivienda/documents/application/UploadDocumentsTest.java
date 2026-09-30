@@ -37,7 +37,7 @@ class UploadDocumentsTest {
 
     @BeforeEach
     void setUp() {
-        AppProperties properties = new AppProperties(Path.of("/tmp/storage"), 20, 3, 900, 50, 4, 10, 15000);
+        AppProperties properties = new AppProperties(Path.of("/tmp/storage"), 20, 3, 900, 50, 4, 10, 15000, 3_600_000L);
         documents = new InMemoryDocumentRepository();
         storage = new InMemoryFileStorage();
         events = new RecordingEventPublisher();
