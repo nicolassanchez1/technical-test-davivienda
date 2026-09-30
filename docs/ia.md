@@ -137,6 +137,47 @@ Tres defectos que aparecieron al ejecutar, no al leer:
   Se resuelve explicitamente en el controlador.
 - **Un parametro de consulta invalido devolvia 500** en lugar de 400.
 
+### Fase 3 — Procesamiento e indexación
+
+Delegada en dos encargos al agente `backend-engineer`: primero extractores y chunkers
+(logica pura, muy testeable), despues el pipeline del worker. El primer encargo llego a
+chocar con el limite de sesion y se recupero solo.
+
+Decisiones del agente que se revisaron:
+
+- **Aceptada, y la verificacion humana se equivoco primero.** El agente cambio el orden de
+  deteccion de codificacion: en vez de "detectar con juniversalchardet y decodificar", intenta
+  primero un decode UTF-8 estricto y solo cae al detector si falla. Justifico el cambio
+  diciendo que el detector lee prosa UTF-8 en espanol como una codificacion china. Lo puse a
+  prueba contra la libreria con una frase corta, el detector acerto UTF-8, y di la afirmacion
+  por falsa: reescribi el comentario del codigo culpando a las muestras cortas. Estaba mal.
+  Al repetir la prueba contra el fixture real del repositorio, de 370 bytes, el detector
+  devuelve `GB18030` y convierte `Especificación` en `Especificaci贸n`; con 24 bytes devuelve
+  UTF-8. Mi muestra era justo el caso que el detector acierta. El agente tenia razon, el
+  comentario quedo con el motivo reproducible, y `CLAUDE.md` se alineo con la implementacion.
+  Queda anotado porque describe lo que hace util revisar: la revision encontro el error, y
+  despues se encontro el suyo propio.
+- **Aceptada.** Una sola sentencia con `unnest` en lugar de un lote JDBC, porque
+  `JdbcClient` no expone API de lote en Spring Framework 7 y el proyecto no admite bajar de
+  `JdbcClient`. Sigue siendo un solo viaje y un solo plan, y sigue siendo `EXPLAIN`-able.
+- **Aceptada.** Un archivo ilegible se trata como fallo transitorio y no como veredicto sobre
+  el contenido: el volumen compartido puede ir retrasado, y marcar `ERROR` ahi seria mentir.
+
+Lo que garantiza el pipeline, y como se prueba:
+
+- La indexacion ocurre en **una sola transaccion**, y el `UPDATE` lleva
+  `AND status = 'PROCESANDO'`. Si otro consumidor ya termino el documento, la actualizacion
+  afecta cero filas, la transaccion se revierte y no se anuncia nada.
+- El evento de estado se publica **solo despues del commit**, igual que el job de carga.
+- Un fallo determinista (PDF sin capa de texto, archivo corrupto, contenido vacio) marca
+  `ERROR` con su codigo y va a la dead-letter queue sin reintentos. Un fallo transitorio se
+  reintenta tres veces con backoff exponencial antes de rendirse.
+
+Verificacion end to end fuera de los tests: con `docker compose up` se cargo un documento en
+espanol, paso de `PROCESANDO` a `INDEXADO` en dos segundos, quedo partido en dos fragmentos
+por sus encabezados, y contra la base real la consulta `especificacion tecnica` **sin
+tildes** encontro el contenido escrito **con** tildes.
+
 ## Prompts Clave
 
 | Objetivo            | Prompt (resumido)                                                                                                                                       | Refinamiento aplicado                                                                                                   |

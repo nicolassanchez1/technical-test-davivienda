@@ -4,8 +4,8 @@ Aplicación web para cargar documentos técnicos (TXT, PDF, Markdown) con metada
 procesarlos e indexarlos de forma asíncrona, buscarlos por texto completo con resaltado y
 paginación, y visualizarlos en la aplicación con notificaciones de estado en tiempo real.
 
-> Proyecto en construcción. Hoy funcionan la carga de documentos con metadatos y su consulta;
-> la indexación, la búsqueda y las notificaciones en tiempo real llegan en las fases siguientes.
+> Proyecto en construcción. Hoy funcionan la carga de documentos, su indexación asíncrona y su
+> consulta; la búsqueda y las notificaciones en tiempo real llegan en las fases siguientes.
 
 ## Requisitos previos
 
@@ -67,6 +67,12 @@ un solo archivo, una cabecera `Location`.
 | `GET /api/documents/{id}`         | Detalle con todos los metadatos                                            |
 | `GET /api/documents/{id}/content` | Cuerpo del documento por fragmentos, paginado por cursor                   |
 | `GET /api/documents/{id}/file`    | Archivo original, servido inline                                           |
+
+Tras la carga, el worker extrae el texto, lo divide en fragmentos y los indexa. El documento
+pasa a `INDEXADO`, o a `ERROR` con un código que explica por qué: un PDF sin capa de texto
+termina en `PDF_NO_TEXT_LAYER`, por ejemplo. La API y el worker son el mismo jar con distinto
+perfil: el worker no levanta servidor HTTP, porque analizar un PDF consume CPU y no debe
+competir con los hilos que atienden peticiones.
 
 Formatos aceptados: `.txt`, `.md`, `.markdown`, `.pdf`. Se valida la extension, el tamano
 y los bytes de cabecera del archivo. Si algun archivo del lote no pasa, **no se guarda
