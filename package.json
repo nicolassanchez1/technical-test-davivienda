@@ -24,7 +24,8 @@
     "test:ts": "pnpm --recursive test",
     "test:integration": "./backend/mvnw -B -f backend/pom.xml verify",
     "build": "./backend/mvnw -B -f backend/pom.xml package && pnpm --recursive build",
-    "contract:generate": "pnpm run test:integration && pnpm --filter @technical-test-davivienda/shared contract:generate"
+    "contract:generate": "pnpm run test:integration && pnpm --filter @technical-test-davivienda/shared contract:generate",
+    "seed": "node scripts/seed.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.3",

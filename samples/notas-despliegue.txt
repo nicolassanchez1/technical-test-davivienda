@@ -1,0 +1,12 @@
+Notas de despliegue
+===================
+
+El despliegue azul verde reduce el tiempo de inactividad durante la publicación.
+
+Antes de promover una versión hay que verificar que las migraciones aplicaron y que el
+worker consumió la cola pendiente. Una migración a medias deja la aplicación arrancada
+pero incapaz de indexar.
+
+El proxy inverso desactiva el almacenamiento intermedio en la ruta de eventos. Sin esa
+configuración el flujo queda retenido y las notificaciones en tiempo real dejan de
+funcionar sin que aparezca ningún error.

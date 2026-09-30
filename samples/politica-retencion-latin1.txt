@@ -1,0 +1,11 @@
+Politica de retencion de documentos
+====================================
+
+Los documentos tecnicos se conservan segun su categoria.
+
+Las especificaciones se mantienen de forma indefinida. Los manuales de operacion se revisan
+cada año y se archivan cuando el sistema que describen sale de produccion.
+
+Este archivo esta guardado en Latin-1 a proposito: sirve para comprobar que la deteccion de
+codificacion funciona y que los caracteres acentuados como año, revision tecnica y
+configuracion no se corrompen al indexar.
