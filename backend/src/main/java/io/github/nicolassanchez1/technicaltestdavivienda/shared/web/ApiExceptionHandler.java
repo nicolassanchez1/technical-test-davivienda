@@ -1,5 +1,7 @@
 package io.github.nicolassanchez1.technicaltestdavivienda.shared.web;
 
+import io.github.nicolassanchez1.technicaltestdavivienda.documents.application.InvalidUploadException;
+import io.github.nicolassanchez1.technicaltestdavivienda.documents.application.UploadFileError;
 import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.DuplicateDocumentException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -43,6 +46,7 @@ public class ApiExceptionHandler {
         MethodArgumentNotValidException.class,
         HandlerMethodValidationException.class,
         MissingServletRequestParameterException.class,
+        MethodArgumentTypeMismatchException.class,
         HttpMessageNotReadableException.class,
         IllegalArgumentException.class
     })
@@ -83,6 +87,38 @@ public class ApiExceptionHandler {
                 "urn:problem-type:resource-conflict",
                 "The resource conflicts with one that already exists.",
                 request);
+    }
+
+    /**
+     * A batch is all or nothing: every rejected file is reported at once so the caller fixes the
+     * whole upload in one round trip instead of discovering the next problem on the next attempt.
+     */
+    @ExceptionHandler(InvalidUploadException.class)
+    ProblemDetail handleInvalidUpload(InvalidUploadException exception, HttpServletRequest request) {
+        ProblemDetail problem = problem(
+                HttpStatus.UNPROCESSABLE_ENTITY, InvalidUploadException.PROBLEM_TYPE, exception.getMessage(), request);
+        if (!exception.errors().isEmpty()) {
+            problem.setProperty(
+                    "errors",
+                    exception.errors().stream()
+                            .map(ApiExceptionHandler::describe)
+                            .toList());
+        }
+        return problem;
+    }
+
+    private static Map<String, Object> describe(UploadFileError error) {
+        Map<String, Object> described = new LinkedHashMap<>();
+        described.put("index", error.index());
+        described.put("filename", error.filename());
+        described.put("rule", error.rule().name());
+        if (error.errorCode() != null) {
+            described.put("errorCode", error.errorCode().name());
+        }
+        if (error.existingDocumentId() != null) {
+            described.put("existingDocumentId", error.existingDocumentId().toString());
+        }
+        return described;
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
