@@ -42,10 +42,11 @@ describe('App shell', () => {
     expect(screen.getByRole('heading', { level: 2, name: copy.upload.title })).toBeInTheDocument();
   });
 
-  it('renders the viewer route for one document, so the search phase only fills it in', () => {
+  it('renders the viewer route for one document', () => {
     renderWithProviders(<App />, { route: '/documents/11111111-1111-1111-1111-111111111111' });
 
     expect(screen.getByRole('heading', { level: 2, name: copy.viewer.title })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: copy.viewer.backToSearch })).toBeInTheDocument();
   });
 
   it('renders the not-found page for an unknown route', () => {

@@ -5,6 +5,7 @@ type Schemas = components['schemas'];
 export type DocumentResponse = Schemas['DocumentResponse'];
 export type DocumentPageResponse = Schemas['DocumentPageResponse'];
 export type DocumentContentResponse = Schemas['DocumentContentResponse'];
+export type DocumentChunkResponse = Schemas['DocumentChunkResponse'];
 export type UploadAcceptedResponse = Schemas['UploadAcceptedResponse'];
 export type UploadedDocumentResponse = Schemas['UploadedDocumentResponse'];
 export type DocumentStatusMessage = Schemas['DocumentStatusMessage'];

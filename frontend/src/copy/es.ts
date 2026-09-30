@@ -91,7 +91,35 @@ export const copy = {
     title: 'Búsqueda de documentos',
     intro:
       'Busca por palabras o frases entre comillas sobre el título, los metadatos y el contenido de los documentos indexados.',
-    pending: 'La búsqueda con resaltado y paginación llega en la siguiente entrega.',
+    inputLabel: 'Términos de búsqueda',
+    inputHint:
+      'Usa comillas para una frase exacta, "or" entre alternativas y un guion delante de una palabra para excluirla.',
+    filters: {
+      legend: 'Filtros',
+      category: 'Categoría',
+      anyCategory: 'Todas las categorías',
+      author: 'Autor',
+      tags: 'Etiquetas',
+      tagsHint: 'Separadas por comas',
+      clear: 'Limpiar filtros',
+    },
+    idle: 'Escribe una palabra o una frase para empezar a buscar.',
+    empty: 'Ningún documento coincide con la búsqueda.',
+    emptyHint: 'Revisa la ortografía, usa menos palabras o quita algún filtro.',
+    resultsLabel: 'Resultados de la búsqueda',
+    paginationLabel: 'Paginación de resultados',
+    summary: '{total} resultados en {took} ms',
+    summaryOne: '1 resultado en {took} ms',
+    pageIndicator: 'Página {page} de {pages}',
+    matchInHeading: 'Sección: {heading}',
+    matchInPage: 'Página {page}',
+    errors: {
+      noSearchableTerm:
+        'La búsqueda necesita al menos una palabra que se pueda indexar. Escribe otra palabra o quita los signos de puntuación.',
+      pageOutOfRange: 'Esa página está fuera del rango de resultados. Vuelve a la primera página.',
+      timeout:
+        'La búsqueda tardó más de lo permitido y se canceló. Acota los términos o aplica un filtro.',
+    },
   },
 
   upload: {
@@ -182,9 +210,39 @@ export const copy = {
 
   viewer: {
     title: 'Visor de documentos',
-    pending:
-      'El visor con metadatos, tabla de contenido y resaltado llega en la siguiente entrega.',
-    documentId: 'Identificador: {id}',
+    backToSearch: 'Volver a la búsqueda',
+    openOriginal: 'Abrir el archivo original',
+    metadata: {
+      legend: 'Metadatos',
+      author: 'Autor',
+      category: 'Categoría',
+      tags: 'Etiquetas',
+      version: 'Versión',
+      filename: 'Archivo',
+      mimeType: 'Formato',
+      size: 'Tamaño',
+      status: 'Estado',
+      pageCount: 'Páginas',
+      chunkCount: 'Fragmentos indexados',
+      processingTime: 'Tiempo de indexación',
+      created: 'Cargado',
+      updated: 'Actualizado',
+      indexed: 'Indexado',
+      milliseconds: '{value} ms',
+    },
+    body: {
+      legend: 'Contenido',
+      processing:
+        'El documento todavía se está indexando. El contenido aparece aquí en cuanto termine, sin recargar la página.',
+      failed: 'El documento no se pudo indexar, así que no hay contenido que mostrar.',
+      empty: 'El documento no tiene contenido que mostrar.',
+      loadingMore: 'Cargando más contenido…',
+      pageLabel: 'Página {page}',
+    },
+    toc: {
+      title: 'Tabla de contenido',
+      empty: 'El documento no tiene encabezados.',
+    },
   },
 
   notifications: {

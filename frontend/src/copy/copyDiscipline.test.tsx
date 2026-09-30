@@ -117,10 +117,16 @@ describe('copy discipline', () => {
     expect(textsNotInCopy(container)).toEqual([]);
   });
 
-  it('renders the viewer placeholder with no text of its own', () => {
+  it('renders the viewer with no text of its own', async () => {
+    // One response per call: the viewer reads the document and then its body, and a Response can
+    // only be consumed once.
+    installFetchMock().mockImplementation(() =>
+      Promise.resolve(jsonResponse({ items: [], total: 0, page: 1, pageSize: 10 })),
+    );
     const { container } = renderWithProviders(<App />, {
       route: '/documents/11111111-1111-1111-1111-111111111111',
     });
+    await screen.findByText(copy.viewer.body.empty);
 
     expect(textsNotInCopy(container)).toEqual([]);
   });
