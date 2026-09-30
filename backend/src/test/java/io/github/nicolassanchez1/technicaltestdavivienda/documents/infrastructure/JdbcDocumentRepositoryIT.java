@@ -202,4 +202,41 @@ class JdbcDocumentRepositoryIT extends AbstractIntegrationTest {
                 .satisfies(failure -> assertThat(failure.existingDocumentId()).isEqualTo(first.id()));
         assertThat(documents.countAll(null)).isEqualTo(1);
     }
+
+    @Test
+    void movesADocumentToIndexedOnlyWhileItIsStillBeingProcessed() {
+        Document document = documents.save(processing(checksum('p'), CREATED_AT));
+
+        assertThat(documents.markIndexed(document.id(), 7, 3, 250)).isTrue();
+
+        Document indexed = documents.findById(document.id()).orElseThrow();
+        assertThat(indexed.status()).isEqualTo(DocumentStatus.INDEXED);
+        assertThat(indexed.chunkCount()).isEqualTo(7);
+        assertThat(indexed.pageCount()).isEqualTo(3);
+        assertThat(indexed.processingMs()).isEqualTo(250);
+        assertThat(indexed.indexedAt()).isNotNull();
+        assertThat(indexed.updatedAt()).isNotEqualTo(CREATED_AT);
+
+        // The second consumer of a repeated job updates nothing and is told so.
+        assertThat(documents.markIndexed(document.id(), 99, 9, 1)).isFalse();
+        assertThat(documents.findById(document.id()).orElseThrow().chunkCount()).isEqualTo(7);
+    }
+
+    @Test
+    void recordsAFailureWithTheReasonTheSchemaInsistsOn() {
+        Document document = documents.save(processing(checksum('q'), CREATED_AT));
+
+        assertThat(documents.markFailed(document.id(), DocumentErrorCode.PDF_NO_TEXT_LAYER, "No text layer"))
+                .isTrue();
+
+        Document failed = documents.findById(document.id()).orElseThrow();
+        assertThat(failed.status()).isEqualTo(DocumentStatus.FAILED);
+        assertThat(failed.errorCode()).isEqualTo(DocumentErrorCode.PDF_NO_TEXT_LAYER);
+        assertThat(failed.errorMessage()).isEqualTo("No text layer");
+        assertThat(failed.indexedAt()).isNull();
+
+        // A document that already finished keeps the outcome it reached.
+        assertThat(documents.markFailed(document.id(), DocumentErrorCode.PROCESSING_FAILED, "Too late"))
+                .isFalse();
+    }
 }

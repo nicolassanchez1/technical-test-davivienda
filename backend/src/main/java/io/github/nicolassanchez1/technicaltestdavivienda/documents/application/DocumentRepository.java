@@ -1,6 +1,7 @@
 package io.github.nicolassanchez1.technicaltestdavivienda.documents.application;
 
 import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.Document;
+import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.DocumentErrorCode;
 import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.DocumentStatus;
 import java.util.List;
 import java.util.Optional;
@@ -29,4 +30,23 @@ public interface DocumentRepository {
 
     /** A null status counts documents in every status. */
     long countAll(DocumentStatus statusOrNull);
+
+    /**
+     * Records a finished indexing run, but only on a document that is still being processed.
+     *
+     * <p>The guard is what makes a redelivered job harmless. Two consumers may hold the same job,
+     * and the second one must not overwrite the first one's result: it updates no row, learns that
+     * it lost, and rolls its own work back.
+     *
+     * @return true when this call is the one that moved the document to {@code INDEXADO}
+     */
+    boolean markIndexed(UUID documentId, int chunkCount, Integer pageCount, long processingMs);
+
+    /**
+     * Records why a document could not be indexed, under the same guard as {@link #markIndexed}: a
+     * document that already reached a terminal state keeps the state it reached.
+     *
+     * @return true when this call is the one that moved the document to {@code ERROR}
+     */
+    boolean markFailed(UUID documentId, DocumentErrorCode errorCode, String errorMessage);
 }
