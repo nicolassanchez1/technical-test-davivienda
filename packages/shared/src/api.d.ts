@@ -44,6 +44,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Subscribe to document status changes
+         * @description A Server-Sent Events stream. Every change is an event named `document.status` carrying an id of its own, and a comment is written periodically so an idle connection stays open. The stream is opened once per client, never once per document, and it is never asked for a status it has not announced.
+         */
+        get: operations["subscribe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/{id}": {
         parameters: {
             query?: never;
@@ -166,6 +186,16 @@ export interface components {
              * @description How long the engine took, excluding rendering this response
              */
             tookMs?: number;
+        };
+        DocumentStatusMessage: {
+            /** Format: uuid */
+            documentId?: string;
+            /** @enum {string} */
+            status?: "PROCESANDO" | "INDEXADO" | "ERROR";
+            /** @enum {string} */
+            errorCode?: "PDF_NO_TEXT_LAYER" | "UNSUPPORTED_FORMAT" | "CORRUPT_FILE" | "EMPTY_CONTENT" | "PROCESSING_FAILED";
+            /** Format: date-time */
+            occurredAt?: string;
         };
         /** @description One page of documents, newest first */
         DocumentPageResponse: {
@@ -354,6 +384,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["SearchResponse"];
+                };
+            };
+        };
+    };
+    subscribe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description An open event stream. Each `document.status` event carries this payload. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": components["schemas"]["DocumentStatusMessage"];
                 };
             };
         };
