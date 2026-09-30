@@ -16,10 +16,13 @@ paginación, y visualizarlos en la aplicación con notificaciones de estado en t
 ## Arranque
 
 ```bash
-cp .env.example .env
-docker compose up -d --build   # PostgreSQL, RabbitMQ y la API
+cp .env.example .env           # obligatorio: sin este archivo compose se detiene
+docker compose up -d --build
 pnpm install
 ```
+
+El primer paso no es opcional. `.env` no se versiona, y `.env.example` trae valores de
+desarrollo listos para usar; si falta, compose se detiene indicando exactamente eso.
 
 La API queda en `http://localhost:8081/api`:
 
