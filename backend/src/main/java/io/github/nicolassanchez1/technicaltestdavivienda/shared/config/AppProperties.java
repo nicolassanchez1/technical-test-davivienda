@@ -21,7 +21,16 @@ public record AppProperties(
         @Positive @Max(200) int searchMaxPageSize,
         @Positive @Max(64) int workerConcurrency,
         @Positive @Max(1440) int stuckProcessingMinutes,
-        @Positive @Max(300_000) long sseHeartbeatMs) {
+        @Positive @Max(300_000) long sseHeartbeatMs,
+        @Positive @Max(86_400_000) long sseTimeoutMs) {
+
+    public AppProperties {
+        // A stream closed before its first heartbeat would have every client reconnecting in a loop,
+        // and the two values are set independently, so the combination is checked at boot.
+        if (sseTimeoutMs <= sseHeartbeatMs) {
+            throw new IllegalArgumentException("app.sse-timeout-ms must be longer than app.sse-heartbeat-ms.");
+        }
+    }
 
     public long maxFileSizeBytes() {
         return (long) maxFileSizeMb * 1024 * 1024;

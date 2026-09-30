@@ -29,7 +29,7 @@ class ReconcileStuckDocumentsTest {
         documents = new InMemoryDocumentRepository();
         jobs = new RecordingJobPublisher();
         AppProperties properties =
-                new AppProperties(Path.of("/tmp/storage"), 20, 10, 900, 50, 4, STUCK_AFTER_MINUTES, 15000);
+                new AppProperties(Path.of("/tmp/storage"), 20, 10, 900, 50, 4, STUCK_AFTER_MINUTES, 15000, 3_600_000L);
         reconcile = new ReconcileStuckDocuments(documents, jobs, properties);
     }
 

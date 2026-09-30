@@ -16,8 +16,8 @@ class UploadValidatorTest {
     private static final int MAX_FILE_SIZE_MB = 1;
     private static final long MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024L * 1024L;
 
-    private final UploadValidator validator = new UploadValidator(
-            new AppProperties(Path.of("target", "storage"), MAX_FILE_SIZE_MB, 10, 900L, 50, 4, 10, 15_000L));
+    private final UploadValidator validator = new UploadValidator(new AppProperties(
+            Path.of("target", "storage"), MAX_FILE_SIZE_MB, 10, 900L, 50, 4, 10, 15_000L, 3_600_000L));
 
     private static byte[] utf8(String content) {
         return content.getBytes(StandardCharsets.UTF_8);

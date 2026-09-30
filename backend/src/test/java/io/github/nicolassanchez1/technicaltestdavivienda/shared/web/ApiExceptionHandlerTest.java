@@ -17,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 class ApiExceptionHandlerTest {
@@ -100,6 +101,14 @@ class ApiExceptionHandlerTest {
                 .andExpect(jsonPath("$.detail").value("The request could not be completed."));
     }
 
+    @Test
+    void writesNothingBackWhenTheClientHungUpBeforeTheResponseWasFinished() throws Exception {
+        // A closed tab on the event stream is not a fault, and there is no connection left to answer.
+        mockMvc.perform(get("/boom/client-gone"))
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
+    }
+
     @RestController
     static class FailingController {
 
@@ -142,6 +151,11 @@ class ApiExceptionHandlerTest {
         @GetMapping("/boom/unexpected")
         void unexpected() {
             throw new IllegalStateException("secret internal detail");
+        }
+
+        @GetMapping("/boom/client-gone")
+        void clientGone() throws AsyncRequestNotUsableException {
+            throw new AsyncRequestNotUsableException("Response not usable after response errors.");
         }
     }
 }

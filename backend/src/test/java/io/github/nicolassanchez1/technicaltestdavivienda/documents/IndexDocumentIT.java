@@ -176,7 +176,7 @@ class IndexDocumentIT extends AbstractIntegrationTest {
     }
 
     @Test
-    void changesNothingAndAnnouncesNothingForADocumentThatIsAlreadyIndexed() {
+    void changesNothingForADocumentThatIsAlreadyIndexed() {
         Document document = givenStoredMarkdown("Guía Davivienda");
         indexDocument.index(document.id());
         Document indexed = documents.findById(document.id()).orElseThrow();
@@ -188,7 +188,23 @@ class IndexDocumentIT extends AbstractIntegrationTest {
         assertThat(unchanged.indexedAt()).isEqualTo(indexed.indexedAt());
         assertThat(unchanged.updatedAt()).isEqualTo(indexed.updatedAt());
         assertThat(chunkCountOf(document.id())).isEqualTo(2);
-        assertThat(rabbitTemplate.receive(SUBSCRIBER_QUEUE, SILENCE_TIMEOUT_MS)).isNull();
+    }
+
+    @Test
+    void announcesAgainForARepeatedJobSoALostBroadcastIsRepaired() {
+        Document document = givenStoredMarkdown("Guía Davivienda");
+        indexDocument.index(document.id());
+        drainStatusQueue();
+
+        // A job only comes back for a finished document when the previous attempt failed after its
+        // transaction committed: the document is indexed and no client was ever told.
+        indexDocument.index(document.id());
+
+        Message repeated = rabbitTemplate.receive(SUBSCRIBER_QUEUE, RECEIVE_TIMEOUT_MS);
+        assertThat(repeated).isNotNull();
+        assertThat(new String(repeated.getBody(), StandardCharsets.UTF_8))
+                .contains(document.id().toString())
+                .contains(DocumentStatus.INDEXED.wireValue());
     }
 
     @Test

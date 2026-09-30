@@ -21,7 +21,8 @@ class AppPropertiesTest {
         "app.search-max-page-size=50",
         "app.worker-concurrency=4",
         "app.stuck-processing-minutes=10",
-        "app.sse-heartbeat-ms=15000"
+        "app.sse-heartbeat-ms=15000",
+        "app.sse-timeout-ms=3600000"
     };
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
@@ -42,6 +43,7 @@ class AppPropertiesTest {
             assertThat(properties.workerConcurrency()).isEqualTo(4);
             assertThat(properties.stuckProcessingMinutes()).isEqualTo(10);
             assertThat(properties.sseHeartbeatMs()).isEqualTo(15000);
+            assertThat(properties.sseTimeoutMs()).isEqualTo(3600000);
         });
     }
 
@@ -75,6 +77,13 @@ class AppPropertiesTest {
     void failsFastWhenThePageSizeCeilingIsUnreasonable() {
         runner.withPropertyValues(VALID_PROPERTIES)
                 .withPropertyValues("app.search-max-page-size=5000")
+                .run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
+    void failsFastWhenAnEventStreamWouldCloseBeforeItsFirstHeartbeat() {
+        runner.withPropertyValues(VALID_PROPERTIES)
+                .withPropertyValues("app.sse-timeout-ms=15000")
                 .run(context -> assertThat(context).hasFailed());
     }
 

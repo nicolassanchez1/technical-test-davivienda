@@ -8,6 +8,8 @@ app:
   worker-concurrency: 4
   stuck-processing-minutes: 10
   sse-heartbeat-ms: 15000
+  # An hour, matching the read timeout the reverse proxy holds an event stream for.
+  sse-timeout-ms: 3600000
 
 spring:
   application:

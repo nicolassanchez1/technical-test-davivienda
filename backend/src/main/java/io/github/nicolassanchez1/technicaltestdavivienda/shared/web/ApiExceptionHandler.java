@@ -15,12 +15,14 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.QueryTimeoutException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
@@ -158,6 +160,18 @@ public class ApiExceptionHandler {
                 "urn:problem-type:search-timeout",
                 "The query took too long and was cancelled. Narrow the search and retry.",
                 request);
+    }
+
+    /**
+     * The client hung up before the response was finished, which an event stream sees every time a tab
+     * is closed. Nothing is written back, because there is no longer anyone on the connection to read
+     * it, and it is recorded at debug: it is routine, and logging it as a fault would bury the real
+     * ones.
+     */
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    ResponseEntity<Void> handleDisconnectedClient(AsyncRequestNotUsableException exception) {
+        log.debug("The client disconnected before the response was complete", exception);
+        return ResponseEntity.noContent().build();
     }
 
     @ExceptionHandler(Exception.class)
