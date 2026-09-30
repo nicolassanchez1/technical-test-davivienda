@@ -217,6 +217,51 @@ técnica` con los terminos marcados entre `⟦` y `⟧`, que la frase entre comi
 con `-termino` funcionan, que los filtros por metadatos acotan, y que un documento en
 `PROCESANDO` no aparece hasta que el worker lo indexa.
 
+### Fase 5 — Notificaciones en tiempo real (HU-04)
+
+Delegada en el agente `backend-engineer`. El fan-out de RabbitMQ y la publicación tras commit
+ya existían desde la fase 3, así que el encargo fue solo el último tramo: de la cola de cada
+instancia al navegador.
+
+Durante esta fase se planteó **cambiar el tiempo real a polling**. Se verificó contra el
+enunciado antes de decidir: HU-04 lo prohíbe por su nombre ("la actualización del estado de
+carga del documento no debe realizarse mediante _polling_ tradicional"), sus criterios de
+aceptación admiten solo WebSocket, SSE o suscripciones GraphQL, y el checklist del apartado 7
+lo marca como ítem evaluable. Se mantuvo SSE.
+
+Decisiones del agente que se revisaron:
+
+- **Aceptada.** El controlador vive en `events/web/` y no en `events/`, porque una regla de
+  ArchUnit exige que todo `@RestController` resida en un paquete `web`. Relajar la regla no era
+  opción.
+- **Aceptada.** El endpoint lleva `@Profile("!worker")`: el contexto del worker sigue creando
+  los beans `@RestController` aunque no levante servidor, así que sin el perfil el worker no
+  arrancaba.
+- **Aceptada.** El identificador del evento se deriva del propio cambio en lugar de ser un
+  contador, de modo que el mismo cambio llega con el mismo `id` a todas las conexiones.
+- **Aceptada, con una variable de entorno de más.** `APP_SSE_TIMEOUT_MS` no estaba en la lista
+  de `CLAUDE.md`; la alternativa era dejar el tiempo de expiración incrustado en el código. Se
+  valida al arranque que supere al latido, porque un stream que cierra antes de su primer latido
+  dejaría a todos los clientes reconectando en bucle. `CLAUDE.md` se actualizó.
+- **Aceptada.** Una escritura fallida cierra el emisor en lugar de fallarlo: fallarlo devolvía
+  el error al servlet, que intentaba responder a un socket muerto con un documento de problema y
+  registraba una desconexión normal como fallo.
+
+La auditoría posterior encontró un hueco que ni el agente ni la verificación manual habían
+visto: si la publicación del anuncio fallaba en la ventana posterior al commit, el trabajo
+volvía a la cola, encontraba el documento ya terminal y salía en silencio. El documento quedaba
+indexado y ningún cliente se enteraba nunca. Se corrigió haciendo que ese camino **repita el
+anuncio** en lugar de salir callado, con sus pruebas unitarias y de integración. También se
+corrigieron dos comentarios que describían mal el mecanismo: uno decía que la cola la nombraba
+el broker cuando la nombra el cliente, que es justamente lo que permite sobrevivir a un
+reinicio del broker.
+
+Verificación propia sobre el stack completo, con un cliente escuchando `/api/events` mientras se
+cargaba un documento: llegó `INDEXADO` con su `id` y el valor en español del contrato, sin que el
+cliente preguntara nada. Con un PDF sin capa de texto llegó `ERROR` con `PDF_NO_TEXT_LAYER`, y
+los latidos aparecieron en la conexión ociosa. Las cabeceras incluyen `X-Accel-Buffering: no`,
+que es lo que impide que un proxy retenga el stream.
+
 ## Prompts Clave
 
 | Objetivo            | Prompt (resumido)                                                                                                                                       | Refinamiento aplicado                                                                                                   |

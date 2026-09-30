@@ -78,7 +78,33 @@ _Pendiente: justificar el modelo de datos y la estrategia de chunking cuando se 
 - **No hay polling de ningun tipo.** Al reconectar se hace una unica lectura de
   reconciliacion de los documentos que el cliente aun ve en `PROCESANDO`.
 
-_Pendiente: detallar el registro de emisores y el manejo de desconexiones (fase 5)._
+### Registro de emisores y desconexiones
+
+Cada instancia de la API mantiene en memoria los `SseEmitter` de sus propios clientes, en una
+estructura concurrente: los eventos llegan por el hilo del consumidor de RabbitMQ mientras las
+peticiones entran por otros, y los hilos virtuales estan activos.
+
+- El emisor se da de alta y se le enganchan sus devoluciones de llamada en la misma operacion,
+  de modo que no existe forma de registrar una conexion sin dejar dispuesta su baja. Se
+  desregistra al completarse, al expirar y al fallar.
+- Un cliente muerto no puede afectar a los demas: si la escritura falla, se da de baja ese
+  emisor y la difusion continua con el resto. El limite conocido es distinto: un cliente
+  _conectado pero que no lee_ (un portatil suspendido) bloquea la difusion al resto hasta que
+  el contenedor agota su tiempo de escritura, porque los envios se hacen en serie. A la escala
+  de esta prueba es aceptable; con muchos lectores habria que escribir a cada emisor por
+  separado.
+- Al suscribirse se escribe un comentario. Esa primera escritura es la que vacia las cabeceras
+  de la respuesta; sin ella el cliente no ve el `200` hasta el primer cambio de estado.
+- Cada evento lleva un `id` derivado del propio cambio, asi que el mismo cambio viaja con el
+  mismo identificador a todas las conexiones y un cliente distingue un duplicado de un evento
+  nuevo.
+- Un comentario de latido cada `APP_SSE_HEARTBEAT_MS` evita que un intermediario corte una
+  conexion ociosa. `APP_SSE_TIMEOUT_MS` cierra la conexion mucho despues, y se valida al
+  arranque que sea mayor que el latido: al reves, todos los clientes reconectarian en bucle.
+
+El estado en memoria es admisible porque es exactamente el que debe perderse al reiniciar: un
+navegador que pierde la conexión reconecta y vuelve a suscribirse. Nada de lo que la aplicación
+necesita recordar vive ahí.
 
 ## Interpretación del SLA (400 ms – 1 s)
 
@@ -148,6 +174,12 @@ Fuera de alcance, declarado de forma explicita:
 - Edicion y borrado de documentos.
 - Internacionalizacion de la interfaz: la copy esta en espanol, centralizada en
   `frontend/src/copy/es.ts`.
+
+Entrega de eventos: el anuncio se publica después del commit, así que nunca se anuncia un
+estado que no ocurrió. Si la publicación falla en la ventana posterior al commit, el mensaje
+no se confirma y vuelve; el trabajo repetido encuentra el documento ya terminal y **repite el
+anuncio** en lugar de salir en silencio, que es lo que cierra esa ventana. Un cliente que sí
+escuchó el primero lo descarta por el identificador del evento.
 
 Trade-offs asumidos:
 
