@@ -1,0 +1,18 @@
+# The web image builds from the repository root, so keep everything it does not need out of the
+# context: installs happen inside the image and the rest is either generated or private.
+.git
+.github
+.husky
+node_modules
+**/node_modules
+**/dist
+**/coverage
+backend/target
+spec
+.env
+.env.*
+!.env.example
+.claude
+docs
+samples
+*.md
