@@ -73,6 +73,15 @@ public class JdbcDocumentRepository implements DocumentRepository {
             WHERE id = :id AND status = :processingStatus
             """;
 
+    // Reached through the status index, which holds few rows for a queue that is keeping up.
+    private static final String SELECT_STUCK_IN_PROCESSING =
+            """
+            SELECT id FROM documents
+            WHERE status = :processingStatus AND updated_at < :stuckSince
+            ORDER BY updated_at
+            LIMIT :limit
+            """;
+
     private static final RowMapper<Document> DOCUMENT_MAPPER = (row, rowNumber) -> new Document(
             row.getObject("id", UUID.class),
             row.getString("title"),
@@ -211,6 +220,17 @@ public class JdbcDocumentRepository implements DocumentRepository {
                         .param("processingStatus", DocumentStatus.PROCESSING.wireValue())
                         .update()
                 == 1;
+    }
+
+    @Override
+    public List<UUID> findStuckInProcessing(Instant stuckSince, int limit) {
+        return jdbcClient
+                .sql(SELECT_STUCK_IN_PROCESSING)
+                .param("processingStatus", DocumentStatus.PROCESSING.wireValue())
+                .param("stuckSince", timestampOf(stuckSince))
+                .param("limit", limit)
+                .query(UUID.class)
+                .list();
     }
 
     /**
