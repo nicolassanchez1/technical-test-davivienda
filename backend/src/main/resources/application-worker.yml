@@ -1,0 +1,9 @@
+# The worker is the same jar as the api with the HTTP side switched off. Parsing a PDF is CPU bound
+# and would compete with request threads, so it runs as its own process consuming the job queue.
+spring:
+  main:
+    web-application-type: none
+  # Only the api owns the schema. Two processes migrating the same database race each other, and a
+  # worker that boots first must never create the tables the api is about to migrate.
+  flyway:
+    enabled: false

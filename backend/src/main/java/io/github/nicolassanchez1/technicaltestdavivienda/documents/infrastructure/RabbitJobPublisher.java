@@ -26,7 +26,8 @@ public class RabbitJobPublisher implements JobPublisher {
                 new ProcessingJobMessage(documentId),
                 message -> {
                     // The document id doubles as the message id, so one job can be traced from the
-                    // management console to the row without opening the body.
+                    // management console to the row without opening the body, and a job that is
+                    // given up on can be attributed even when its body is what failed to be read.
                     message.getMessageProperties().setMessageId(documentId.toString());
                     return message;
                 });
