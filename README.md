@@ -15,41 +15,61 @@ paginación, y visualizarlos en la aplicación con notificaciones de estado en t
 
 ## Arranque
 
+Todo corre en Docker. Estos dos pasos son suficientes:
+
 ```bash
-cp .env.example .env           # obligatorio: sin este archivo compose se detiene
+cp .env.example .env    # obligatorio: sin este archivo compose se detiene
 docker compose up -d --build
-pnpm install
 ```
 
-El primer paso no es opcional. `.env` no se versiona, y `.env.example` trae valores de
-desarrollo listos para usar; si falta, compose se detiene indicando exactamente eso.
+Cuando los cinco servicios estén arriba, abre **<http://localhost:8080>**. Eso es todo: no hace
+falta instalar nada más ni arrancar el frontend por separado, porque compose ya lo sirve con
+nginx delante.
 
-La API queda en `http://localhost:8081/api`:
+```bash
+docker compose ps       # los cinco servicios y su estado
+docker compose logs -f  # si algo no responde
+```
+
+`.env` no se versiona y `.env.example` trae valores de desarrollo listos para usar. Si falta,
+compose se detiene indicando exactamente eso.
 
 | Recurso                          | URL                                     |
 | -------------------------------- | --------------------------------------- |
-| Aplicación web                   | `http://localhost:8080`                 |
+| **Aplicación web**               | **`http://localhost:8080`**             |
 | Salud (base de datos y RabbitMQ) | `http://localhost:8081/api/health`      |
 | Swagger UI                       | `http://localhost:8081/api/docs`        |
 | Documento OpenAPI                | `http://localhost:8081/api/v3/api-docs` |
 | Eventos de estado (SSE)          | `http://localhost:8081/api/events`      |
 | Consola de RabbitMQ              | `http://localhost:15672`                |
 
-| Comando                  | Qué hace                                                     |
-| ------------------------ | ------------------------------------------------------------ |
-| `pnpm lint`              | ESLint sobre TypeScript y Spotless sobre Java                |
-| `pnpm format:check`      | Comprueba el formato con Prettier                            |
-| `pnpm typecheck`         | Comprueba los tipos de TypeScript                            |
-| `pnpm test`              | Tests unitarios de backend y frontend                        |
-| `pnpm test:integration`  | Tests de integración del backend (Failsafe)                  |
-| `pnpm build`             | Empaqueta el backend y construye el frontend                 |
-| `pnpm contract:generate` | Regenera el contrato TypeScript desde el OpenAPI del backend |
+## Desarrollo
 
-El frontend de desarrollo arranca con
-`pnpm --filter @technical-test-davivienda/frontend dev` y redirige `/api` al backend.
+Solo si vas a modificar el código. Para únicamente ejecutar la aplicación, basta el apartado
+anterior.
 
-Cada respuesta lleva una cabecera `X-Request-Id`; los errores se devuelven como
-`application/problem+json` (RFC 9457) e incluyen ese mismo identificador.
+```bash
+pnpm install                                            # requiere Node 24
+pnpm --filter @technical-test-davivienda/frontend dev    # http://localhost:5173
+```
+
+El servidor de desarrollo redirige `/api` a `http://localhost:8081`, así que **el backend tiene
+que estar corriendo**: deja `docker compose up -d` levantado, o al menos sus servicios de
+backend.
+
+```bash
+docker compose up -d postgres rabbitmq api worker   # backend sin la web de nginx
+```
+
+| Comando                  | Qué hace                                                           |
+| ------------------------ | ------------------------------------------------------------------ |
+| `pnpm lint`              | ESLint sobre TypeScript y Spotless sobre Java                      |
+| `pnpm format:check`      | Comprueba el formato con Prettier                                  |
+| `pnpm typecheck`         | Comprueba los tipos de TypeScript                                  |
+| `pnpm test`              | Tests unitarios de backend y frontend                              |
+| `pnpm test:integration`  | Tests de integración del backend (Testcontainers, necesita Docker) |
+| `pnpm build`             | Empaqueta el backend y construye el frontend                       |
+| `pnpm contract:generate` | Regenera el contrato TypeScript desde el OpenAPI del backend       |
 
 ## Carga de documentos (HU-01)
 
