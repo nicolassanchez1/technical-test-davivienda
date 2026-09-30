@@ -7,6 +7,10 @@ export function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+export function textResponse(body: string, contentType = 'text/markdown'): Response {
+  return new Response(body, { status: 200, headers: { 'content-type': contentType } });
+}
+
 export function problemResponse(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
     status,

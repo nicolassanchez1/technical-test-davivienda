@@ -1,6 +1,7 @@
-import { buildQuery, requestJson } from './client';
+import { apiUrl, buildQuery, requestJson, requestText } from './client';
 import type { DocumentListParams } from './queryKeys';
 import type {
+  DocumentContentResponse,
   DocumentPageResponse,
   DocumentResponse,
   UploadAcceptedResponse,
@@ -34,6 +35,29 @@ export function listDocuments(
 
 export function getDocument(id: string, signal?: AbortSignal): Promise<DocumentResponse> {
   return requestJson<DocumentResponse>(`/documents/${id}`, { signal });
+}
+
+/**
+ * One window of a document's body. `fromChunkIndex` is a cursor, not an offset: the next window
+ * starts where the previous one said it ends, so no chunk is read twice or skipped.
+ */
+export function getDocumentContent(
+  id: string,
+  fromChunkIndex: number,
+  limit: number,
+  signal?: AbortSignal,
+): Promise<DocumentContentResponse> {
+  const query = buildQuery({ fromChunkIndex, limit });
+  return requestJson<DocumentContentResponse>(`/documents/${id}/content${query}`, { signal });
+}
+
+/** The stored file as text, which is how the viewer gets the Markdown source it renders. */
+export function getDocumentText(id: string, signal?: AbortSignal): Promise<string> {
+  return requestText(`/documents/${id}/file`, { signal });
+}
+
+export function documentFileUrl(id: string): string {
+  return apiUrl(`/documents/${id}/file`);
 }
 
 /**

@@ -5,6 +5,7 @@ import { documentKeys } from '../api/queryKeys';
 import type { DocumentResponse, DocumentStatus } from '../api/types';
 import { copy } from '../copy/es';
 import { interpolate } from '../copy/interpolate';
+import { Pagination } from '../shared/Pagination';
 import { describeError } from '../shared/errors';
 import { formatBytes, formatDateTime } from '../shared/format';
 import { StatusBadge } from './StatusBadge';
@@ -144,30 +145,13 @@ export function DocumentsPage() {
             </table>
           </div>
 
-          <nav
-            className="flex items-center justify-between gap-4"
-            aria-label={copy.documents.title}
-          >
-            <button
-              type="button"
-              disabled={page <= 1}
-              onClick={() => changePage(page - 1)}
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-800 disabled:opacity-40"
-            >
-              {copy.actions.previousPage}
-            </button>
-            <p className="text-sm text-slate-600">
-              {interpolate(copy.documents.pageIndicator, { page, pages: pageCount })}
-            </p>
-            <button
-              type="button"
-              disabled={page >= pageCount}
-              onClick={() => changePage(page + 1)}
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-800 disabled:opacity-40"
-            >
-              {copy.actions.nextPage}
-            </button>
-          </nav>
+          <Pagination
+            label={copy.documents.title}
+            indicator={interpolate(copy.documents.pageIndicator, { page, pages: pageCount })}
+            page={page}
+            pageCount={pageCount}
+            onChange={changePage}
+          />
         </>
       ) : null}
     </section>

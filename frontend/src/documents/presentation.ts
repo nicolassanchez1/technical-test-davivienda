@@ -23,6 +23,10 @@ export function isDocumentStatus(value: unknown): value is DocumentStatus {
   return typeof value === 'string' && documentStatuses.includes(value as DocumentStatus);
 }
 
+export function isDocumentCategory(value: unknown): value is DocumentCategory {
+  return typeof value === 'string' && documentCategories.includes(value as DocumentCategory);
+}
+
 export function statusLabel(status: DocumentStatus): string {
   return statusLabels[status];
 }
