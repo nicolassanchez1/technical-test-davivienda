@@ -110,6 +110,101 @@
         }
       }
     },
+    "/search" : {
+      "get" : {
+        "tags" : [ "search-controller" ],
+        "summary" : "Search indexed documents",
+        "description" : "Quoted phrases, `or` between alternatives and a leading minus to exclude a word are all understood. Only documents that finished indexing are ever returned.",
+        "operationId" : "search",
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "description" : "Words or quoted phrases to look for",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : ""
+          },
+          "example" : "indice invertido -borrador"
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 1
+          }
+        }, {
+          "name" : "pageSize",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 10
+          }
+        }, {
+          "name" : "category",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "MANUAL", "SPECIFICATION", "ARCHITECTURE_GUIDE", "OTHER" ]
+          }
+        }, {
+          "name" : "author",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "tags",
+          "in" : "query",
+          "description" : "Every tag given must be present on the document",
+          "required" : false,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "A page of ranked matches with highlighted fragments",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "The query carries no searchable term, or the paging is out of range",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "The search exceeded its time budget and was cancelled",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/documents/{id}" : {
       "get" : {
         "tags" : [ "document-catalog-controller" ],
@@ -243,6 +338,95 @@
           "status" : {
             "type" : "string",
             "enum" : [ "PROCESANDO", "INDEXADO", "ERROR" ]
+          }
+        }
+      },
+      "SearchHitResponse" : {
+        "type" : "object",
+        "description" : "One matching document with its best fragment",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "titleHighlight" : {
+            "type" : "string",
+            "description" : "The title with every matched word wrapped in the U+27E6 and U+27E7 sentinels",
+            "example" : "Guia de ⟦despliegue⟧"
+          },
+          "author" : {
+            "type" : "string"
+          },
+          "category" : {
+            "type" : "string",
+            "enum" : [ "MANUAL", "SPECIFICATION", "ARCHITECTURE_GUIDE", "OTHER" ]
+          },
+          "tags" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "version" : {
+            "type" : "string"
+          },
+          "indexedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "chunkIndex" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Index of the chunk the fragment came from, so the viewer can scroll to it"
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Page the fragment came from, for documents that have pages"
+          },
+          "heading" : {
+            "type" : "string"
+          },
+          "snippet" : {
+            "type" : "string",
+            "description" : "Matched fragment, with the same sentinels as the title"
+          },
+          "rank" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        }
+      },
+      "SearchResponse" : {
+        "type" : "object",
+        "description" : "One page of search results, highest ranked first",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SearchHitResponse"
+            }
+          },
+          "total" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "Documents matching the query and the filters, not chunks"
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pageSize" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "tookMs" : {
+            "type" : "integer",
+            "format" : "int64",
+            "description" : "How long the engine took, excluding rendering this response"
           }
         }
       },
