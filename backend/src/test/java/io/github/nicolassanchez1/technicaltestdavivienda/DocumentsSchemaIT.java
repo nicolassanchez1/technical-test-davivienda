@@ -53,11 +53,15 @@ class DocumentsSchemaIT extends AbstractIntegrationTest {
     void acceptsEveryStatusTheDomainDefines(DocumentStatus status) {
         String errorCode = status == DocumentStatus.FAILED ? DocumentErrorCode.CORRUPT_FILE.name() : null;
 
-        insertDocument(sha((char) ('a' + status.ordinal())), status.wireValue(), "MANUAL", errorCode);
+        String sha256 = sha((char) ('a' + status.ordinal()));
+        insertDocument(sha256, status.wireValue(), "MANUAL", errorCode);
 
+        // Counted by checksum rather than over the whole table: what is asserted is that this row
+        // was accepted, which must not depend on what any other test left behind.
         Integer stored = jdbcClient
-                .sql("SELECT count(*) FROM documents WHERE status = :status")
+                .sql("SELECT count(*) FROM documents WHERE status = :status AND sha256 = :sha256")
                 .param("status", status.wireValue())
+                .param("sha256", sha256)
                 .query(Integer.class)
                 .single();
         assertThat(stored).isEqualTo(1);
