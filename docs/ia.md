@@ -100,6 +100,43 @@ en lugar de repetirse en cada prompt.
 Los agentes implementan y reportan; la sesion principal revisa, prepara y commitea. Ningun
 agente hace commits.
 
+### Fase 2 — Carga de documentos (HU-01)
+
+Primera fase delegada de verdad en los agentes del repositorio, no solo en la sesion
+principal:
+
+- El agente `backend-engineer` construyo el nucleo no HTTP: modelo de dominio, puertos,
+  repositorio JDBC, almacenamiento en disco y validacion de la carga, con sus tests.
+- Un segundo encargo al mismo agente, para la capa HTTP, **se corto por limite de sesion**
+  cuando ya habia escrito la capa de aplicacion y la de infraestructura. La sesion
+  principal termino la capa web y todos los tests. Queda registrado porque describe lo que
+  realmente paso, no lo que estaba planeado.
+
+Decisiones del agente que se revisaron y se aceptaron, con su motivo:
+
+- `DuplicateDocumentException` **no** extiende `ApplicationException`. No puede: esa clase
+  vive en `shared/web` y carga un `HttpStatus`, y la regla de ArchUnit prohibe que el
+  dominio dependa de Spring. Quedo como excepcion de dominio y se mapea en el unico
+  `@RestControllerAdvice`.
+- `findAll` y `countAll` usan dos sentencias en lugar de un predicado anulable. Un
+  `WHERE (CAST(:status AS text) IS NULL OR status = :status)` habria descartado el indice
+  de `status`, justo en un proyecto cuya premisa es que no hay escaneos sin indice.
+- La validacion de texto comprueba que no haya bytes de control, no que decodifique como
+  UTF-8 estricto: el proyecto acepta TXT en Latin-1, donde `é` es `0xE9` y un decode
+  estricto rechazaria un archivo valido.
+
+Tres defectos que aparecieron al ejecutar, no al leer:
+
+- **Spring Boot 4 usa Jackson 3** (`tools.jackson.databind`). El bean de Jackson 2 ya no
+  existe y el contexto no arrancaba. Las anotaciones siguen en
+  `com.fasterxml.jackson.annotation`, asi que `@JsonValue` sigue siendo valido.
+- **`?status=PROCESANDO` no enlazaba**: Spring convierte enums por el nombre de la
+  constante, que es ingles, y los parametros de consulta no pasan por Jackson. Con un
+  `Converter` propio el valor correcto funcionaba, pero al rechazar uno invalido Spring caia
+  al conversor por nombre y aceptaba `PROCESSING`, filtrando los nombres internos a la API.
+  Se resuelve explicitamente en el controlador.
+- **Un parametro de consulta invalido devolvia 500** en lugar de 400.
+
 ## Prompts Clave
 
 | Objetivo            | Prompt (resumido)                                                                                                                                       | Refinamiento aplicado                                                                                                   |
