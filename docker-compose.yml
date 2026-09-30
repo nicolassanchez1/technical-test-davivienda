@@ -73,6 +73,48 @@ services:
       retries: 10
       start_period: 40s
 
+  # The same image as the api with the HTTP side switched off: parsing is CPU bound and must not
+  # compete with request threads. It waits for the api because only the api migrates the schema,
+  # and it shares the uploads volume because it reads the files the api stored.
+  worker:
+    build:
+      context: ./backend
+    environment:
+      SPRING_PROFILES_ACTIVE: worker
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_RABBITMQ_HOST: ${SPRING_RABBITMQ_HOST}
+      SPRING_RABBITMQ_PORT: ${SPRING_RABBITMQ_PORT}
+      SPRING_RABBITMQ_USERNAME: ${SPRING_RABBITMQ_USERNAME}
+      SPRING_RABBITMQ_PASSWORD: ${SPRING_RABBITMQ_PASSWORD}
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ${LOGGING_STRUCTURED_FORMAT_CONSOLE}
+      APP_STORAGE_DIR: /app/storage
+      APP_MAX_FILE_SIZE_MB: ${APP_MAX_FILE_SIZE_MB}
+      APP_MAX_FILES_PER_UPLOAD: ${APP_MAX_FILES_PER_UPLOAD}
+      APP_SEARCH_TIMEOUT_MS: ${APP_SEARCH_TIMEOUT_MS}
+      APP_SEARCH_MAX_PAGE_SIZE: ${APP_SEARCH_MAX_PAGE_SIZE}
+      APP_WORKER_CONCURRENCY: ${APP_WORKER_CONCURRENCY}
+      APP_STUCK_PROCESSING_MINUTES: ${APP_STUCK_PROCESSING_MINUTES}
+      APP_SSE_HEARTBEAT_MS: ${APP_SSE_HEARTBEAT_MS}
+    volumes:
+      - documents-storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    # The worker serves no HTTP, so this can only report that the process is alive. It is still
+    # worth having: it is the process that does all the work, and a crashed one is otherwise silent.
+    healthcheck:
+      test: ['CMD-SHELL', 'pgrep -f app.jar > /dev/null']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
 volumes:
   postgres-data:
   rabbitmq-data:
