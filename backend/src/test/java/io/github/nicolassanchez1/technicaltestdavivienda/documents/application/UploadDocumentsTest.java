@@ -9,16 +9,15 @@ import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.Docume
 import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.DocumentMetadata;
 import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.DocumentStatus;
 import io.github.nicolassanchez1.technicaltestdavivienda.shared.config.AppProperties;
+import io.github.nicolassanchez1.technicaltestdavivienda.support.InMemoryDocumentRepository;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -123,7 +122,7 @@ class UploadDocumentsTest {
                 });
 
         assertThat(storage.stored).isEmpty();
-        assertThat(documents.saved).isEmpty();
+        assertThat(documents.saved()).isEmpty();
         assertThat(events.requestedDocumentIds()).isEmpty();
     }
 
@@ -154,70 +153,8 @@ class UploadDocumentsTest {
                     assertThat(error.existingDocumentId()).isEqualTo(first.id());
                 });
 
-        assertThat(documents.saved).hasSize(1);
+        assertThat(documents.saved()).hasSize(1);
         assertThat(events.requestedDocumentIds()).isEmpty();
-    }
-
-    private static final class InMemoryDocumentRepository implements DocumentRepository {
-        private final Map<UUID, Document> saved = new LinkedHashMap<>();
-
-        @Override
-        public Document save(Document document) {
-            UUID id = document.id() == null ? UUID.randomUUID() : document.id();
-            Instant now = Instant.now();
-            Document persisted = new Document(
-                    id,
-                    document.title(),
-                    document.author(),
-                    document.category(),
-                    document.tags(),
-                    document.version(),
-                    document.originalFilename(),
-                    document.mimeType(),
-                    document.sizeBytes(),
-                    document.storageKey(),
-                    document.sha256(),
-                    document.status(),
-                    document.errorCode(),
-                    document.errorMessage(),
-                    document.pageCount(),
-                    document.chunkCount(),
-                    document.processingMs(),
-                    now,
-                    now,
-                    document.indexedAt());
-            saved.put(id, persisted);
-            return persisted;
-        }
-
-        @Override
-        public Optional<Document> findById(UUID id) {
-            return Optional.ofNullable(saved.get(id));
-        }
-
-        @Override
-        public Optional<UUID> findIdBySha256(String sha256) {
-            return saved.values().stream()
-                    .filter(document -> document.sha256().equals(sha256))
-                    .map(Document::id)
-                    .findFirst();
-        }
-
-        @Override
-        public List<Document> findAll(DocumentStatus statusOrNull, int limit, int offset) {
-            return saved.values().stream()
-                    .filter(document -> statusOrNull == null || document.status() == statusOrNull)
-                    .skip(offset)
-                    .limit(limit)
-                    .toList();
-        }
-
-        @Override
-        public long countAll(DocumentStatus statusOrNull) {
-            return saved.values().stream()
-                    .filter(document -> statusOrNull == null || document.status() == statusOrNull)
-                    .count();
-        }
     }
 
     private static final class InMemoryFileStorage implements FileStorage {

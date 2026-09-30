@@ -55,6 +55,24 @@ public class JdbcDocumentRepository implements DocumentRepository {
 
     private static final String COUNT_BY_STATUS = "SELECT count(*) FROM documents WHERE status = :status";
 
+    // The status predicate is the whole point: it is what makes a repeated delivery update no row
+    // instead of overwriting the result the first consumer committed.
+    private static final String MARK_INDEXED =
+            """
+            UPDATE documents
+            SET status = :indexedStatus, chunk_count = :chunkCount, page_count = :pageCount,
+                processing_ms = :processingMs, indexed_at = now(), updated_at = now()
+            WHERE id = :id AND status = :processingStatus
+            """;
+
+    private static final String MARK_FAILED =
+            """
+            UPDATE documents
+            SET status = :failedStatus, error_code = :errorCode, error_message = :errorMessage,
+                updated_at = now()
+            WHERE id = :id AND status = :processingStatus
+            """;
+
     private static final RowMapper<Document> DOCUMENT_MAPPER = (row, rowNumber) -> new Document(
             row.getObject("id", UUID.class),
             row.getString("title"),
@@ -166,6 +184,33 @@ public class JdbcDocumentRepository implements DocumentRepository {
                 .param("status", statusOrNull.wireValue())
                 .query(Long.class)
                 .single();
+    }
+
+    @Override
+    public boolean markIndexed(UUID documentId, int chunkCount, Integer pageCount, long processingMs) {
+        return jdbcClient
+                        .sql(MARK_INDEXED)
+                        .param("indexedStatus", DocumentStatus.INDEXED.wireValue())
+                        .param("chunkCount", chunkCount)
+                        .param("pageCount", pageCount)
+                        .param("processingMs", processingMs)
+                        .param("id", documentId)
+                        .param("processingStatus", DocumentStatus.PROCESSING.wireValue())
+                        .update()
+                == 1;
+    }
+
+    @Override
+    public boolean markFailed(UUID documentId, DocumentErrorCode errorCode, String errorMessage) {
+        return jdbcClient
+                        .sql(MARK_FAILED)
+                        .param("failedStatus", DocumentStatus.FAILED.wireValue())
+                        .param("errorCode", errorCode.name())
+                        .param("errorMessage", errorMessage)
+                        .param("id", documentId)
+                        .param("processingStatus", DocumentStatus.PROCESSING.wireValue())
+                        .update()
+                == 1;
     }
 
     /**
