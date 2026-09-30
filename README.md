@@ -4,9 +4,8 @@ Aplicación web para cargar documentos técnicos (TXT, PDF, Markdown) con metada
 procesarlos e indexarlos de forma asíncrona, buscarlos por texto completo con resaltado y
 paginación, y visualizarlos en la aplicación con notificaciones de estado en tiempo real.
 
-> Proyecto en construcción. Hoy funcionan la carga de documentos, su indexación asíncrona y la
-> búsqueda de texto completo; el visor y las notificaciones en tiempo real llegan en las fases
-> siguientes.
+> Proyecto en construcción. El backend está completo: carga, indexación asíncrona, búsqueda de
+> texto completo y notificaciones en tiempo real. El frontend llega en las fases siguientes.
 
 ## Requisitos previos
 
@@ -29,6 +28,7 @@ La API queda en `http://localhost:8081/api`:
 | Salud (base de datos y RabbitMQ) | `http://localhost:8081/api/health`      |
 | Swagger UI                       | `http://localhost:8081/api/docs`        |
 | Documento OpenAPI                | `http://localhost:8081/api/v3/api-docs` |
+| Eventos de estado (SSE)          | `http://localhost:8081/api/events`      |
 | Consola de RabbitMQ              | `http://localhost:15672`                |
 
 | Comando                  | Qué hace                                                     |
@@ -101,6 +101,27 @@ respuesta incluye `tookMs` y una cabecera `Server-Timing`.
 
 Solo aparecen documentos `INDEXADO`. Una consulta sin términos buscables responde `400` con
 un mensaje accionable, y una búsqueda que excede su presupuesto de tiempo responde `503`.
+
+## Notificaciones en tiempo real (HU-04)
+
+El backend avisa cuando un documento termina de procesarse. No hay _polling_: el cliente abre
+una conexión y espera.
+
+```bash
+curl -N http://localhost:8081/api/events
+```
+
+```
+:stream-open
+
+id:ef7cfc57-…-1790779571356
+event:document.status
+data:{"documentId":"ef7cfc57-…","status":"INDEXADO","occurredAt":"…"}
+```
+
+Un documento que falla llega con su motivo, por ejemplo
+`{"status":"ERROR","errorCode":"PDF_NO_TEXT_LAYER"}`. Cada `APP_SSE_HEARTBEAT_MS` viaja un
+comentario de latido para que ningún intermediario corte una conexión ociosa.
 
 ## Estructura
 
