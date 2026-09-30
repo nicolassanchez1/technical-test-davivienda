@@ -96,7 +96,27 @@ Mecanismos que hacen cumplible ese techo:
   coincidencias.
 - Indice GIN sobre `search_vector`.
 
-_Pendiente: cifras reales de p50/p95/p99 (fase 8)._
+### Medición preliminar (fase 4)
+
+Sobre una base sembrada con 5.000 documentos y 20.000 fragmentos, ejecutando la consulta
+real con `EXPLAIN (ANALYZE, BUFFERS)`:
+
+| Caso                                                    | Plan                                                     | Tiempo  |
+| ------------------------------------------------------- | -------------------------------------------------------- | ------- |
+| Consulta selectiva (`"balanceo de carga" 4523`)         | `Bitmap Index Scan on document_chunks_search_vector_idx` | ~1 ms   |
+| Término presente en los 20.000 fragmentos               | mismo índice GIN                                         | 192 ms  |
+| Negación pura (`-borrador`), la forma más cara aceptada | mismo índice GIN                                         | ~273 ms |
+
+En ningún caso aparece un `Seq Scan`. El `LIMIT` se aplica antes de los `JOIN` exteriores,
+de modo que `ts_headline` solo procesa las filas devueltas: ahí está la diferencia entre
+cumplir el techo y romperlo.
+
+Coste conocido: el filtro de estado dentro de `best` implica una búsqueda por clave primaria
+en `documents` por cada fragmento coincidente, no por documento. Es la consecuencia de aplicar
+los filtros en el paso rankeado, que es lo que evita filtrar en memoria después. Se mide con
+cifras completas de p50/p95/p99 en la fase 8.
+
+_Pendiente: p50/p95/p99 bajo carga concurrente (fase 8)._
 
 ## Escalabilidad
 
