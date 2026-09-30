@@ -124,6 +124,47 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description RFC 9457 problem detail */
+        ProblemDetail: {
+            /**
+             * Format: uri
+             * @example urn:problem-type:invalid-upload
+             */
+            type: string;
+            /** @example Unprocessable Entity */
+            title: string;
+            /**
+             * Format: int32
+             * @example 422
+             */
+            status: number;
+            /** @description What went wrong, in English; the interface shows its own wording */
+            detail?: string;
+            /**
+             * Format: uri
+             * @example /api/documents
+             */
+            instance?: string;
+            /** @description Correlates the failure with the server logs */
+            requestId?: string;
+            errors?: components["schemas"]["UploadFileProblem"][];
+        };
+        /** @description Why one file of a batch was turned down */
+        UploadFileProblem: {
+            /**
+             * Format: int32
+             * @example 1
+             */
+            index: number;
+            /** @example manual.exe */
+            filename?: string;
+            /** @example EXTENSION_ALLOWLIST */
+            rule?: string;
+            /** @example UNSUPPORTED_FORMAT */
+            errorCode?: string;
+            /** @description The document that already holds the same content */
+            existingDocumentId?: string;
+        };
         /** @description Accepted upload. Indexing continues in the background. */
         UploadAcceptedResponse: {
             items?: components["schemas"]["UploadedDocumentResponse"][];
@@ -324,7 +365,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["UploadAcceptedResponse"];
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
             /** @description The batch was rejected; nothing was stored */
@@ -333,7 +374,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["UploadAcceptedResponse"];
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };
@@ -374,7 +415,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["SearchResponse"];
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
             /** @description The search exceeded its time budget and was cancelled */
@@ -383,7 +424,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["SearchResponse"];
+                    "application/problem+json": components["schemas"]["ProblemDetail"];
                 };
             };
         };

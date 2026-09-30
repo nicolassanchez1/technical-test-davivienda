@@ -142,7 +142,7 @@ ORDER BY p.rank DESC, d.id;
 - Title highlight: ts_headline on `d.title` with `HighlightAll=true` and the same sentinels, in the same statement.
 - A hit is a projection, not the whole row: `storage_key` and `sha256` never leave the server. Query length is bounded (an unbounded query is an unbounded parse).
 - Sentinels ⟦ ⟧ become `<mark>` React nodes on the frontend. Never `dangerouslySetInnerHTML` for snippets or document content.
-- A document whose own text contains ⟦ or ⟧ comes back with them doubled (`⟦⟦term⟧⟧`). The renderer splits on sentinels and must treat an empty segment as empty output, never as a broken match.
+- Nothing escapes the sentinels: a document whose own text already contains ⟦ or ⟧ around a matched term comes back reading `⟦⟦term⟧⟧`, because ts_headline wraps text that was already wrapped. The renderer splits on sentinels and must treat an empty segment as empty output, never as a broken match.
 - Run inside a transaction with `SELECT set_config('statement_timeout', ?, true)` (SET doesn't accept bind parameters), value = `APP_SEARCH_TIMEOUT_MS`. SQLSTATE 57014 → 503 problem+json.
 - Response includes `tookMs`; also send a `Server-Timing` header.
 

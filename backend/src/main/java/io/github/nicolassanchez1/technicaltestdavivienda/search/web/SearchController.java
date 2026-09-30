@@ -4,8 +4,11 @@ import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.Docume
 import io.github.nicolassanchez1.technicaltestdavivienda.search.application.SearchDocuments;
 import io.github.nicolassanchez1.technicaltestdavivienda.search.application.SearchFilters;
 import io.github.nicolassanchez1.technicaltestdavivienda.search.application.SearchOutcome;
+import io.github.nicolassanchez1.technicaltestdavivienda.shared.web.ProblemResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import java.util.List;
@@ -37,8 +40,18 @@ public class SearchController {
         @ApiResponse(responseCode = "200", description = "A page of ranked matches with highlighted fragments"),
         @ApiResponse(
                 responseCode = "400",
-                description = "The query carries no searchable term, or the paging is out of range"),
-        @ApiResponse(responseCode = "503", description = "The search exceeded its time budget and was cancelled")
+                description = "The query carries no searchable term, or the paging is out of range",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemResponse.class))),
+        @ApiResponse(
+                responseCode = "503",
+                description = "The search exceeded its time budget and was cancelled",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemResponse.class)))
     })
     @GetMapping
     public ResponseEntity<SearchResponse> search(

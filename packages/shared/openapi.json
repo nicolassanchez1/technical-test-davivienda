@@ -90,9 +90,9 @@
           "413" : {
             "description" : "A file exceeds the configured maximum size",
             "content" : {
-              "*/*" : {
+              "application/problem+json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/UploadAcceptedResponse"
+                  "$ref" : "#/components/schemas/ProblemDetail"
                 }
               }
             }
@@ -100,9 +100,9 @@
           "422" : {
             "description" : "The batch was rejected; nothing was stored",
             "content" : {
-              "*/*" : {
+              "application/problem+json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/UploadAcceptedResponse"
+                  "$ref" : "#/components/schemas/ProblemDetail"
                 }
               }
             }
@@ -185,9 +185,9 @@
           "400" : {
             "description" : "The query carries no searchable term, or the paging is out of range",
             "content" : {
-              "*/*" : {
+              "application/problem+json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/SearchResponse"
+                  "$ref" : "#/components/schemas/ProblemDetail"
                 }
               }
             }
@@ -195,9 +195,9 @@
           "503" : {
             "description" : "The search exceeded its time budget and was cancelled",
             "content" : {
-              "*/*" : {
+              "application/problem+json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/SearchResponse"
+                  "$ref" : "#/components/schemas/ProblemDetail"
                 }
               }
             }
@@ -332,6 +332,74 @@
   },
   "components" : {
     "schemas" : {
+      "ProblemDetail" : {
+        "type" : "object",
+        "description" : "RFC 9457 problem detail",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "format" : "uri",
+            "example" : "urn:problem-type:invalid-upload"
+          },
+          "title" : {
+            "type" : "string",
+            "example" : "Unprocessable Entity"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 422
+          },
+          "detail" : {
+            "type" : "string",
+            "description" : "What went wrong, in English; the interface shows its own wording"
+          },
+          "instance" : {
+            "type" : "string",
+            "format" : "uri",
+            "example" : "/api/documents"
+          },
+          "requestId" : {
+            "type" : "string",
+            "description" : "Correlates the failure with the server logs"
+          },
+          "errors" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/UploadFileProblem"
+            }
+          }
+        },
+        "required" : [ "status", "title", "type" ]
+      },
+      "UploadFileProblem" : {
+        "type" : "object",
+        "description" : "Why one file of a batch was turned down",
+        "properties" : {
+          "index" : {
+            "type" : "integer",
+            "format" : "int32",
+            "example" : 1
+          },
+          "filename" : {
+            "type" : "string",
+            "example" : "manual.exe"
+          },
+          "rule" : {
+            "type" : "string",
+            "example" : "EXTENSION_ALLOWLIST"
+          },
+          "errorCode" : {
+            "type" : "string",
+            "example" : "UNSUPPORTED_FORMAT"
+          },
+          "existingDocumentId" : {
+            "type" : "string",
+            "description" : "The document that already holds the same content"
+          }
+        },
+        "required" : [ "index" ]
+      },
       "UploadAcceptedResponse" : {
         "type" : "object",
         "description" : "Accepted upload. Indexing continues in the background.",
