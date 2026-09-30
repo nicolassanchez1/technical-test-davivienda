@@ -5,7 +5,10 @@ import io.github.nicolassanchez1.technicaltestdavivienda.documents.application.U
 import io.github.nicolassanchez1.technicaltestdavivienda.documents.application.UploadedFile;
 import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.Document;
 import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.DocumentMetadata;
+import io.github.nicolassanchez1.technicaltestdavivienda.shared.web.ProblemResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.ConstraintViolation;
@@ -47,8 +50,20 @@ public class DocumentUploadController {
             description = "Answers immediately with a tracking id per file; indexing continues in the background.")
     @ApiResponses({
         @ApiResponse(responseCode = "202", description = "Accepted; every file is now PROCESANDO"),
-        @ApiResponse(responseCode = "413", description = "A file exceeds the configured maximum size"),
-        @ApiResponse(responseCode = "422", description = "The batch was rejected; nothing was stored")
+        @ApiResponse(
+                responseCode = "413",
+                description = "A file exceeds the configured maximum size",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemResponse.class))),
+        @ApiResponse(
+                responseCode = "422",
+                description = "The batch was rejected; nothing was stored",
+                content =
+                        @Content(
+                                mediaType = "application/problem+json",
+                                schema = @Schema(implementation = ProblemResponse.class)))
     })
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UploadAcceptedResponse> upload(
