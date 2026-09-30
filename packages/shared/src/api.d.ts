@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search indexed documents
+         * @description Quoted phrases, `or` between alternatives and a leading minus to exclude a word are all understood. Only documents that finished indexing are ever returned.
+         */
+        get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/{id}": {
         parameters: {
             query?: never;
@@ -95,6 +115,57 @@ export interface components {
             filename?: string;
             /** @enum {string} */
             status?: "PROCESANDO" | "INDEXADO" | "ERROR";
+        };
+        /** @description One matching document with its best fragment */
+        SearchHitResponse: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            /**
+             * @description The title with every matched word wrapped in the U+27E6 and U+27E7 sentinels
+             * @example Guia de ⟦despliegue⟧
+             */
+            titleHighlight?: string;
+            author?: string;
+            /** @enum {string} */
+            category?: "MANUAL" | "SPECIFICATION" | "ARCHITECTURE_GUIDE" | "OTHER";
+            tags?: string[];
+            version?: string;
+            /** Format: date-time */
+            indexedAt?: string;
+            /**
+             * Format: int32
+             * @description Index of the chunk the fragment came from, so the viewer can scroll to it
+             */
+            chunkIndex?: number;
+            /**
+             * Format: int32
+             * @description Page the fragment came from, for documents that have pages
+             */
+            page?: number;
+            heading?: string;
+            /** @description Matched fragment, with the same sentinels as the title */
+            snippet?: string;
+            /** Format: double */
+            rank?: number;
+        };
+        /** @description One page of search results, highest ranked first */
+        SearchResponse: {
+            items?: components["schemas"]["SearchHitResponse"][];
+            /**
+             * Format: int64
+             * @description Documents matching the query and the filters, not chunks
+             */
+            total?: number;
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            pageSize?: number;
+            /**
+             * Format: int64
+             * @description How long the engine took, excluding rendering this response
+             */
+            tookMs?: number;
         };
         /** @description One page of documents, newest first */
         DocumentPageResponse: {
@@ -233,6 +304,56 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["UploadAcceptedResponse"];
+                };
+            };
+        };
+    };
+    search: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Words or quoted phrases to look for
+                 * @example indice invertido -borrador
+                 */
+                q?: string;
+                page?: number;
+                pageSize?: number;
+                category?: "MANUAL" | "SPECIFICATION" | "ARCHITECTURE_GUIDE" | "OTHER";
+                author?: string;
+                /** @description Every tag given must be present on the document */
+                tags?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of ranked matches with highlighted fragments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SearchResponse"];
+                };
+            };
+            /** @description The query carries no searchable term, or the paging is out of range */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SearchResponse"];
+                };
+            };
+            /** @description The search exceeded its time budget and was cancelled */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SearchResponse"];
                 };
             };
         };
