@@ -10,3 +10,6 @@ CLAUDE.md
 # Generated from the backend OpenAPI document; formatting it would fight the contract check
 packages/shared/openapi.json
 packages/shared/src/api.d.ts
+
+# Extractor test fixtures: they are inputs to the tests, formatting them would rewrite the input
+backend/src/test/resources/fixtures
