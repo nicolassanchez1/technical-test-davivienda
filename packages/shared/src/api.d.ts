@@ -3,10 +3,163 @@
  * Do not make direct changes to the file.
  */
 
-export type paths = Record<string, never>;
+export interface paths {
+    "/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list"];
+        put?: never;
+        /**
+         * Upload one or more documents
+         * @description Answers immediately with a tracking id per file; indexing continues in the background.
+         */
+        post: operations["upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["byId"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the original file
+         * @description Served inline so the browser renders it in place.
+         */
+        get: operations["file"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a document's body
+         * @description Chunks in order, paged by a cursor over chunkIndex.
+         */
+        get: operations["content"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+}
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: never;
+    schemas: {
+        /** @description Accepted upload. Indexing continues in the background. */
+        UploadAcceptedResponse: {
+            items?: components["schemas"]["UploadedDocumentResponse"][];
+        };
+        /** @description Tracking handle for one accepted file */
+        UploadedDocumentResponse: {
+            /** Format: uuid */
+            id?: string;
+            filename?: string;
+            /** @enum {string} */
+            status?: "PROCESANDO" | "INDEXADO" | "ERROR";
+        };
+        /** @description One page of documents, newest first */
+        DocumentPageResponse: {
+            items?: components["schemas"]["DocumentResponse"][];
+            /** Format: int64 */
+            total?: number;
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            pageSize?: number;
+        };
+        /** @description A document and everything known about it */
+        DocumentResponse: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            author?: string;
+            /** @enum {string} */
+            category?: "MANUAL" | "SPECIFICATION" | "ARCHITECTURE_GUIDE" | "OTHER";
+            tags?: string[];
+            version?: string;
+            originalFilename?: string;
+            mimeType?: string;
+            /** Format: int64 */
+            sizeBytes?: number;
+            /** @enum {string} */
+            status?: "PROCESANDO" | "INDEXADO" | "ERROR";
+            /**
+             * @description Why indexing failed, absent while the document is healthy
+             * @enum {string}
+             */
+            errorCode?: "PDF_NO_TEXT_LAYER" | "UNSUPPORTED_FORMAT" | "CORRUPT_FILE" | "EMPTY_CONTENT" | "PROCESSING_FAILED";
+            errorMessage?: string;
+            /** Format: int32 */
+            pageCount?: number;
+            /** Format: int32 */
+            chunkCount?: number;
+            /** Format: int64 */
+            processingMs?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: date-time */
+            indexedAt?: string;
+        };
+        /** @description One slice of a document's body */
+        DocumentChunkResponse: {
+            /** Format: int32 */
+            chunkIndex?: number;
+            /** Format: int32 */
+            page?: number;
+            heading?: string;
+            content?: string;
+        };
+        /** @description A window over a document's chunks, paged by a cursor over chunkIndex */
+        DocumentContentResponse: {
+            chunks?: components["schemas"]["DocumentChunkResponse"][];
+            /**
+             * Format: int32
+             * @description Cursor for the next window, absent when the document ends here
+             */
+            nextChunkIndex?: number;
+        };
+    };
     responses: never;
     parameters: never;
     requestBodies: never;
@@ -14,4 +167,143 @@ export interface components {
     pathItems: never;
 }
 export type $defs = Record<string, never>;
-export type operations = Record<string, never>;
+export interface operations {
+    list: {
+        parameters: {
+            query?: {
+                status?: string;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DocumentPageResponse"];
+                };
+            };
+        };
+    };
+    upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    files: string[];
+                    metadata: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Accepted; every file is now PROCESANDO */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UploadAcceptedResponse"];
+                };
+            };
+            /** @description A file exceeds the configured maximum size */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UploadAcceptedResponse"];
+                };
+            };
+            /** @description The batch was rejected; nothing was stored */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UploadAcceptedResponse"];
+                };
+            };
+        };
+    };
+    byId: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DocumentResponse"];
+                };
+            };
+        };
+    };
+    file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    content: {
+        parameters: {
+            query?: {
+                fromChunkIndex?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DocumentContentResponse"];
+                };
+            };
+        };
+    };
+}

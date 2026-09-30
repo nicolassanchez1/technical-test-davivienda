@@ -5,6 +5,383 @@
     "description" : "Carga, indexacion asincrona, busqueda full-text y visualizacion de documentos",
     "version" : "0.1.0"
   },
-  "paths" : { },
-  "components" : { }
+  "paths" : {
+    "/documents" : {
+      "get" : {
+        "tags" : [ "document-catalog-controller" ],
+        "operationId" : "list",
+        "parameters" : [ {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 1
+          }
+        }, {
+          "name" : "pageSize",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 10
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentPageResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "document-upload-controller" ],
+        "summary" : "Upload one or more documents",
+        "description" : "Answers immediately with a tracking id per file; indexing continues in the background.",
+        "operationId" : "upload",
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "files" : {
+                    "type" : "array",
+                    "items" : {
+                      "type" : "string",
+                      "format" : "binary"
+                    }
+                  },
+                  "metadata" : {
+                    "type" : "string"
+                  }
+                },
+                "required" : [ "files", "metadata" ]
+              }
+            }
+          }
+        },
+        "responses" : {
+          "202" : {
+            "description" : "Accepted; every file is now PROCESANDO",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UploadAcceptedResponse"
+                }
+              }
+            }
+          },
+          "413" : {
+            "description" : "A file exceeds the configured maximum size",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UploadAcceptedResponse"
+                }
+              }
+            }
+          },
+          "422" : {
+            "description" : "The batch was rejected; nothing was stored",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UploadAcceptedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{id}" : {
+      "get" : {
+        "tags" : [ "document-catalog-controller" ],
+        "operationId" : "byId",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{id}/file" : {
+      "get" : {
+        "tags" : [ "document-catalog-controller" ],
+        "summary" : "Read the original file",
+        "description" : "Served inline so the browser renders it in place.",
+        "operationId" : "file",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/documents/{id}/content" : {
+      "get" : {
+        "tags" : [ "document-catalog-controller" ],
+        "summary" : "Read a document's body",
+        "description" : "Chunks in order, paged by a cursor over chunkIndex.",
+        "operationId" : "content",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "fromChunkIndex",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0
+          }
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 50
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentContentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "UploadAcceptedResponse" : {
+        "type" : "object",
+        "description" : "Accepted upload. Indexing continues in the background.",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/UploadedDocumentResponse"
+            }
+          }
+        }
+      },
+      "UploadedDocumentResponse" : {
+        "type" : "object",
+        "description" : "Tracking handle for one accepted file",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "filename" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PROCESANDO", "INDEXADO", "ERROR" ]
+          }
+        }
+      },
+      "DocumentPageResponse" : {
+        "type" : "object",
+        "description" : "One page of documents, newest first",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DocumentResponse"
+            }
+          },
+          "total" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pageSize" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "DocumentResponse" : {
+        "type" : "object",
+        "description" : "A document and everything known about it",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "author" : {
+            "type" : "string"
+          },
+          "category" : {
+            "type" : "string",
+            "enum" : [ "MANUAL", "SPECIFICATION", "ARCHITECTURE_GUIDE", "OTHER" ]
+          },
+          "tags" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "version" : {
+            "type" : "string"
+          },
+          "originalFilename" : {
+            "type" : "string"
+          },
+          "mimeType" : {
+            "type" : "string"
+          },
+          "sizeBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PROCESANDO", "INDEXADO", "ERROR" ]
+          },
+          "errorCode" : {
+            "type" : "string",
+            "description" : "Why indexing failed, absent while the document is healthy",
+            "enum" : [ "PDF_NO_TEXT_LAYER", "UNSUPPORTED_FORMAT", "CORRUPT_FILE", "EMPTY_CONTENT", "PROCESSING_FAILED" ]
+          },
+          "errorMessage" : {
+            "type" : "string"
+          },
+          "pageCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "chunkCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "processingMs" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "indexedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "DocumentChunkResponse" : {
+        "type" : "object",
+        "description" : "One slice of a document's body",
+        "properties" : {
+          "chunkIndex" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "heading" : {
+            "type" : "string"
+          },
+          "content" : {
+            "type" : "string"
+          }
+        }
+      },
+      "DocumentContentResponse" : {
+        "type" : "object",
+        "description" : "A window over a document's chunks, paged by a cursor over chunkIndex",
+        "properties" : {
+          "chunks" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DocumentChunkResponse"
+            }
+          },
+          "nextChunkIndex" : {
+            "type" : "integer",
+            "format" : "int32",
+            "description" : "Cursor for the next window, absent when the document ends here"
+          }
+        }
+      }
+    }
+  }
 }
