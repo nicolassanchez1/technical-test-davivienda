@@ -1,0 +1,2 @@
+Especificación técnica
+El índice se construye después del análisis.

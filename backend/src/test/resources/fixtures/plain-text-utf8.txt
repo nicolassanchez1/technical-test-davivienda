@@ -1,0 +1,8 @@
+Especificación técnica del buscador
+
+La aplicación indexa documentos técnicos y expone una búsqueda por palabras
+clave y por frases. La extracción de texto se ejecuta en un proceso aparte,
+porque el análisis de un PDF consume CPU y nunca debe competir con las
+peticiones HTTP.
+
+El índice se reconstruye después de cada modificación: acción, camión, sesión.
