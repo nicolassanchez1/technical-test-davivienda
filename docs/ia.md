@@ -299,6 +299,42 @@ cae en el `index.html`, la API responde por el proxy, y con un cliente escuchand
 **a traves de nginx** llego el evento `INDEXADO` del documento recien subido, seguido de los
 latidos. Sin `proxy_buffering off` eso no ocurre y no hay ningun error que lo delate.
 
+### Fase 7 — Buscador y visor de documentos
+
+Delegada en el agente `frontend-engineer`, con las dependencias (`react-markdown`, `remark-gfm`,
+`rehype-slug`, `react-virtuoso`) fijadas antes de delegar por la misma razón que en la fase 6.
+
+Decisiones del agente que se revisaron:
+
+- **Aceptada.** El resaltado del visor reutiliza los delimitadores del motor en lugar de un
+  renderizador nuevo: el cliente envuelve los términos encontrados en `⟦` y `⟧` y los pinta con el
+  mismo `HighlightedText` que ya pintaba los fragmentos del buscador. Un delimitador que el propio
+  documento contenga se duplica, exactamente como hace `ts_headline`, así que el renderizador no
+  necesita distinguir de dónde vino el texto.
+- **Aceptada.** El resaltado del Markdown se hace con un plugin `rehype` propio que sustituye nodos
+  de texto por nodos `mark` en el árbol. Es la única forma de resaltar dentro del Markdown sin
+  `rehype-raw` ni `dangerouslySetInnerHTML`.
+- **Aceptada.** La tabla de contenido se construye leyendo los encabezados ya renderizados. La
+  alternativa, generar los `id` por segunda vez en el cliente, obliga a reimplementar el algoritmo
+  de `rehype-slug` y a que las dos implementaciones no se separen nunca.
+- **Aceptada, con límites documentados.** El resaltado del cuerpo ignora tildes y mayúsculas como
+  `es_unaccent`, exige que la coincidencia empiece palabra y descarta términos de una sola letra,
+  pero no aplica stemming: es una aproximación de la coincidencia, no una afirmación sobre lo que
+  el índice encontró.
+- **Aceptada.** El Markdown se lee del archivo original (`/file`) y no de los fragmentos indexados,
+  porque la extracción guarda el texto sin marcado. Como consecuencia, el cuerpo Markdown se
+  renderiza entero mientras que TXT y PDF se virtualizan con `react-virtuoso` sobre el cursor de
+  `/content`.
+- **Aceptada.** Los dos 400 del buscador se distinguen por el `type` del problema
+  (`invalid-search-query` frente a `invalid-request`), no por el estado: una consulta sin término
+  indexable y una página fuera de rango se arreglan de formas distintas.
+
+Limitación conocida: `initialTopMostItemIndex` de `react-virtuoso` no puede comprobarse en jsdom
+porque no hay disposición ni evento de scroll, así que la prueba cubre el índice del primer
+fragmento que coincide y la virtualización se comprueba contando los nodos montados.
+
+Verificación humana de esta fase: pendiente.
+
 ## Prompts Clave
 
 | Objetivo            | Prompt (resumido)                                                                                                                                       | Refinamiento aplicado                                                                                                   |
