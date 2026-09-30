@@ -157,3 +157,5 @@ jobs:
         run: pnpm run build
       - name: Build the backend image
         run: docker build -t technical-test-davivienda-api:ci ./backend
+      - name: Build the web image
+        run: docker build -t technical-test-davivienda-web:ci -f frontend/Dockerfile .
