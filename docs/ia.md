@@ -178,6 +178,45 @@ espanol, paso de `PROCESANDO` a `INDEXADO` en dos segundos, quedo partido en dos
 por sus encabezados, y contra la base real la consulta `especificacion tecnica` **sin
 tildes** encontro el contenido escrito **con** tildes.
 
+### Fase 4 — Busqueda (HU-02)
+
+Delegada en el agente `search-engineer`, cuyo ambito es justamente la consulta, los pesos, el
+resaltado y la latencia. El brief le fijo la forma de la consulta en lugar de dejarsela
+inventar, porque es el nucleo del ejercicio y tiene que poder defenderse tal como esta escrita.
+
+Decisiones del agente que se revisaron:
+
+- **Aceptada.** Anadio `document_id` como criterio de desempate en `ORDER BY rank DESC`. Los
+  empates de ranking son comunes y sin desempate la paginacion no es estable: un mismo
+  documento podia aparecer en dos paginas o en ninguna.
+- **Aceptada.** El resultado es una proyeccion y no el documento completo: un acierto siempre
+  esta `INDEXADO`, asi que sus campos de error sobran, y `storage_key` y `sha256` no tienen por
+  que salir del servidor.
+- **Aceptada.** Limite de longitud de la consulta. Una cadena sin cota es un parseo sin cota, y
+  eso es un agujero de latencia.
+- **Aceptada, y corrige un problema que venia de antes.** `DocumentsSchemaIT` contaba filas
+  sobre toda la tabla, de modo que solo pasaba si ninguna otra prueba habia insertado nada;
+  estaba verde por el orden de ejecucion. El agente lo acoto al checksum que inserta.
+- **Aceptada, y es la mas interesante.** Su primera version del test de plan exigia un
+  `Bitmap Index Scan` incluso con los tres filtros aplicados. PostgreSQL invierte ese plan
+  legitimamente: con un unico documento candidato entra por el indice de categoria y aplica el
+  `@@` como filtro de join. El test ahora exige lo que de verdad importa, que no haya `Seq Scan`
+  y que se entre por un indice, y mantiene la exigencia del indice GIN para la consulta sin
+  filtros.
+
+Verificacion propia, porque es la afirmacion que sostiene todo el ejercicio: se sembraron
+5.000 documentos y 20.000 fragmentos y se corrio `EXPLAIN (ANALYZE, BUFFERS)` sobre la consulta
+real. Usa `Bitmap Index Scan on document_chunks_search_vector_idx`, entra a `documents` por su
+clave primaria y **no aparece ningun `Seq Scan`**. El peor caso, un termino presente en los
+20.000 fragmentos, sigue usando el indice y se resuelve en **192 ms**, muy por debajo del techo
+de un segundo. El `LIMIT` ocurre antes de los joins externos, de modo que `ts_headline` solo
+procesa las filas devueltas.
+
+Sobre el HTTP se comprobo que `especificacion tecnica` sin tildes encuentra `Especificación
+técnica` con los terminos marcados entre `⟦` y `⟧`, que la frase entre comillas y la exclusion
+con `-termino` funcionan, que los filtros por metadatos acotan, y que un documento en
+`PROCESANDO` no aparece hasta que el worker lo indexa.
+
 ## Prompts Clave
 
 | Objetivo            | Prompt (resumido)                                                                                                                                       | Refinamiento aplicado                                                                                                   |

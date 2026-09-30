@@ -4,8 +4,9 @@ Aplicación web para cargar documentos técnicos (TXT, PDF, Markdown) con metada
 procesarlos e indexarlos de forma asíncrona, buscarlos por texto completo con resaltado y
 paginación, y visualizarlos en la aplicación con notificaciones de estado en tiempo real.
 
-> Proyecto en construcción. Hoy funcionan la carga de documentos, su indexación asíncrona y su
-> consulta; la búsqueda y las notificaciones en tiempo real llegan en las fases siguientes.
+> Proyecto en construcción. Hoy funcionan la carga de documentos, su indexación asíncrona y la
+> búsqueda de texto completo; el visor y las notificaciones en tiempo real llegan en las fases
+> siguientes.
 
 ## Requisitos previos
 
@@ -77,6 +78,29 @@ competir con los hilos que atienden peticiones.
 Formatos aceptados: `.txt`, `.md`, `.markdown`, `.pdf`. Se valida la extension, el tamano
 y los bytes de cabecera del archivo. Si algun archivo del lote no pasa, **no se guarda
 ninguno** y la respuesta es `422` con el detalle por archivo.
+
+## Búsqueda (HU-02)
+
+```bash
+curl -s 'http://localhost:8081/api/search?q=especificacion+tecnica'
+curl -s 'http://localhost:8081/api/search?q="balanceo+de+carga"'   # frase exacta
+curl -s 'http://localhost:8081/api/search?q=postgresql+-respaldo'  # excluir un término
+curl -s 'http://localhost:8081/api/search?q=indice&category=MANUAL&tags=infra&author=Equipo'
+```
+
+| Parámetro                    | Para qué                                                                |
+| ---------------------------- | ----------------------------------------------------------------------- |
+| `q`                          | Términos o frases entre comillas; `-término` excluye                    |
+| `page`, `pageSize`           | Paginación; `pageSize` por defecto 10 y tope `APP_SEARCH_MAX_PAGE_SIZE` |
+| `category`, `author`, `tags` | Filtros por metadatos                                                   |
+
+La búsqueda no distingue tildes: `especificacion tecnica` encuentra `Especificación técnica`.
+Cada resultado trae el fragmento que coincidió con los términos marcados entre `⟦` y `⟧`, más
+el título resaltado igual; el frontend los convierte en `<mark>` sin interpretar HTML. La
+respuesta incluye `tookMs` y una cabecera `Server-Timing`.
+
+Solo aparecen documentos `INDEXADO`. Una consulta sin términos buscables responde `400` con
+un mensaje accionable, y una búsqueda que excede su presupuesto de tiempo responde `503`.
 
 ## Estructura
 

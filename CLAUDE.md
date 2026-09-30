@@ -114,25 +114,35 @@ WITH q AS (SELECT websearch_to_tsquery('es_unaccent', :query) AS query),
 best AS (
   SELECT DISTINCT ON (c.document_id)
          c.document_id, c.id AS chunk_id, ts_rank_cd(c.search_vector, q.query) AS rank
-  FROM document_chunks c, q
+  FROM document_chunks c
+  CROSS JOIN q
+  JOIN documents d ON d.id = c.document_id
   WHERE c.search_vector @@ q.query
+    AND d.status = 'INDEXADO'          -- plus the metadata filters, here and nowhere later
   ORDER BY c.document_id, rank DESC, c.chunk_index
 ),
+matches AS (SELECT count(*) AS total FROM best),
 page AS (
-  SELECT *, count(*) OVER () AS total
-  FROM best ORDER BY rank DESC LIMIT :limit OFFSET :offset
+  SELECT best.* FROM best
+  ORDER BY rank DESC, document_id      -- rank ties are common; without the tiebreaker paging drifts
+  LIMIT :limit OFFSET :offset
 )
-SELECT d.*, p.rank, p.total, ch.chunk_index, ch.page,
+SELECT <document projection>, p.rank, m.total, ch.chunk_index, ch.page, ch.heading,
        ts_headline('es_unaccent', ch.content, q.query,
-         'StartSel=⟦, StopSel=⟧, MaxFragments=2, MaxWords=25, MinWords=10') AS snippet
-FROM page p
-JOIN documents d        ON d.id  = p.document_id
-JOIN document_chunks ch ON ch.id = p.chunk_id
+         'StartSel=⟦, StopSel=⟧, MaxFragments=2, MaxWords=25, MinWords=10') AS snippet,
+       ts_headline('es_unaccent', d.title, q.query,
+         'StartSel=⟦, StopSel=⟧, HighlightAll=true') AS title_highlight
+FROM matches m
+LEFT JOIN page p             ON true   -- keeps the total on a page past the last one
+LEFT JOIN documents d        ON d.id = p.document_id
+LEFT JOIN document_chunks ch ON ch.id = p.chunk_id
 CROSS JOIN q
-ORDER BY p.rank DESC;
+ORDER BY p.rank DESC, d.id;
 ~~~
-- Title highlight: ts_headline on `d.title` with `HighlightAll=true` and the same sentinels.
+- Title highlight: ts_headline on `d.title` with `HighlightAll=true` and the same sentinels, in the same statement.
+- A hit is a projection, not the whole row: `storage_key` and `sha256` never leave the server. Query length is bounded (an unbounded query is an unbounded parse).
 - Sentinels ⟦ ⟧ become `<mark>` React nodes on the frontend. Never `dangerouslySetInnerHTML` for snippets or document content.
+- A document whose own text contains ⟦ or ⟧ comes back with them doubled (`⟦⟦term⟧⟧`). The renderer splits on sentinels and must treat an empty segment as empty output, never as a broken match.
 - Run inside a transaction with `SELECT set_config('statement_timeout', ?, true)` (SET doesn't accept bind parameters), value = `APP_SEARCH_TIMEOUT_MS`. SQLSTATE 57014 → 503 problem+json.
 - Response includes `tookMs`; also send a `Server-Timing` header.
 
