@@ -4,8 +4,8 @@ Aplicación web para cargar documentos técnicos (TXT, PDF, Markdown) con metada
 procesarlos e indexarlos de forma asíncrona, buscarlos por texto completo con resaltado y
 paginación, y visualizarlos en la aplicación con notificaciones de estado en tiempo real.
 
-> Proyecto en construcción. El backend está completo: carga, indexación asíncrona, búsqueda de
-> texto completo y notificaciones en tiempo real. El frontend llega en las fases siguientes.
+> Proyecto en construcción. El backend está completo y la interfaz ya permite cargar documentos
+> y seguir su estado en vivo. El buscador y el visor llegan en la fase siguiente.
 
 ## Requisitos previos
 
@@ -25,6 +25,7 @@ La API queda en `http://localhost:8081/api`:
 
 | Recurso                          | URL                                     |
 | -------------------------------- | --------------------------------------- |
+| Aplicación web                   | `http://localhost:8080`                 |
 | Salud (base de datos y RabbitMQ) | `http://localhost:8081/api/health`      |
 | Swagger UI                       | `http://localhost:8081/api/docs`        |
 | Documento OpenAPI                | `http://localhost:8081/api/v3/api-docs` |
@@ -122,6 +123,20 @@ data:{"documentId":"ef7cfc57-…","status":"INDEXADO","occurredAt":"…"}
 Un documento que falla llega con su motivo, por ejemplo
 `{"status":"ERROR","errorCode":"PDF_NO_TEXT_LAYER"}`. Cada `APP_SSE_HEARTBEAT_MS` viaja un
 comentario de latido para que ningún intermediario corte una conexión ociosa.
+
+## Interfaz
+
+La aplicación se sirve en `http://localhost:8080`, con nginx delante: entrega la SPA y reenvía
+`/api` a la API. Para `/api/events` desactiva el buffering, porque un proxy que retiene el stream
+deja las notificaciones en tiempo real sin efecto y sin ningún error que lo delate.
+
+| Ruta         | Qué hace                                                                        |
+| ------------ | ------------------------------------------------------------------------------- |
+| `/upload`    | Carga individual o masiva, con los metadatos por archivo                        |
+| `/documents` | Lista paginada, filtrable por estado, que cambia sola al indexarse un documento |
+
+La interfaz abre **una sola** conexión de eventos al arrancar, no una por documento, y no consulta
+en intervalos: el estado cambia cuando el backend lo anuncia.
 
 ## Estructura
 

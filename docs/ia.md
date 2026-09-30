@@ -262,6 +262,43 @@ cliente preguntara nada. Con un PDF sin capa de texto llegó `ERROR` con `PDF_NO
 los latidos aparecieron en la conexión ociosa. Las cabeceras incluyen `X-Accel-Buffering: no`,
 que es lo que impide que un proxy retenga el stream.
 
+### Fase 6 — Interfaz de carga y estado en vivo
+
+Delegada en el agente `frontend-engineer`. Las versiones de las dependencias se fijaron antes de
+delegar, todas con mas de ocho dias publicadas, porque la politica de pnpm rechaza lo recien
+publicado y eso ya habia costado una vuelta en la fase 0.
+
+Lo mas util que aporto el agente no fue codigo sino un diagnostico: para leer los errores por
+archivo de una carga rechazada tuvo que **escribir un tipo a mano**, porque springdoc no describe
+los miembros de un `ProblemDetail` y el contrato generado declaraba los cuerpos 413 y 422 con el
+esquema de la respuesta exitosa. El contrato mentia sobre los errores justo en la parte que el
+enunciado evalua. Se verifico, se corrigio en el backend declarando el esquema del problema y sus
+miembros, y el frontend paso a tomar ese tipo del contrato como todos los demas.
+
+Otras decisiones del agente que se revisaron:
+
+- **Aceptada.** La reconciliacion al reconectar es una sola lectura de la primera pagina en lugar
+  de una consulta por documento: no existe un endpoint por lote, y `?status=PROCESANDO` solo dice
+  quien sigue procesando, no en que termino el resto.
+- **Aceptada.** La parte `metadata` viaja como `Blob` con su charset declarado. Un campo de texto
+  plano en `FormData` no lleva `Content-Type`, y Spring lo lee con una codificacion adivinada, lo
+  que rompe los titulos con tildes.
+- **Aceptada.** El `detail` que devuelve la API no se muestra nunca: el backend responde en ingles
+  por contrato, asi que la interfaz traduce por codigo de estado. Hay una prueba que falla si el
+  texto en ingles llega a la pantalla.
+- **Aceptada.** `retry: false` en consultas y mutaciones. Un bucle de reintentos no puede hacer de
+  suscripcion.
+
+Tambien corrigio una imprecision mia: `CLAUDE.md` decia que un documento cuyo texto ya contiene
+los delimitadores "vuelve con ellos duplicados", como si el backend los escapara. No los escapa;
+la duplicacion es consecuencia de que `ts_headline` envuelve un texto que ya venia envuelto. La
+frase se reescribio para decir por que ocurre.
+
+Verificacion propia sobre el stack completo detras de nginx: la SPA se sirve, una ruta profunda
+cae en el `index.html`, la API responde por el proxy, y con un cliente escuchando `/api/events`
+**a traves de nginx** llego el evento `INDEXADO` del documento recien subido, seguido de los
+latidos. Sin `proxy_buffering off` eso no ocurre y no hay ningun error que lo delate.
+
 ## Prompts Clave
 
 | Objetivo            | Prompt (resumido)                                                                                                                                       | Refinamiento aplicado                                                                                                   |
