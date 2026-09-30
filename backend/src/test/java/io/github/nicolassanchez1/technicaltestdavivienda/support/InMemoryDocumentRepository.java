@@ -5,6 +5,7 @@ import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.Docume
 import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.DocumentErrorCode;
 import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.DocumentStatus;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -139,6 +140,17 @@ public final class InMemoryDocumentRepository implements DocumentRepository {
                         Instant.now(),
                         null));
         return true;
+    }
+
+    @Override
+    public List<UUID> findStuckInProcessing(Instant stuckSince, int limit) {
+        return rows.values().stream()
+                .filter(document -> document.status() == DocumentStatus.PROCESSING)
+                .filter(document -> document.updatedAt().isBefore(stuckSince))
+                .sorted(Comparator.comparing(Document::updatedAt))
+                .limit(limit)
+                .map(Document::id)
+                .toList();
     }
 
     private Document processing(UUID documentId) {

@@ -3,6 +3,7 @@ package io.github.nicolassanchez1.technicaltestdavivienda.documents.application;
 import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.Document;
 import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.DocumentErrorCode;
 import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.DocumentStatus;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -49,4 +50,11 @@ public interface DocumentRepository {
      * @return true when this call is the one that moved the document to {@code ERROR}
      */
     boolean markFailed(UUID documentId, DocumentErrorCode errorCode, String errorMessage);
+
+    /**
+     * Identifiers of the documents still being processed since before {@code stuckSince}, oldest
+     * first. Only the identifiers: a reconciling job carries nothing else, and the worker reads the
+     * row it points at anyway.
+     */
+    List<UUID> findStuckInProcessing(Instant stuckSince, int limit);
 }

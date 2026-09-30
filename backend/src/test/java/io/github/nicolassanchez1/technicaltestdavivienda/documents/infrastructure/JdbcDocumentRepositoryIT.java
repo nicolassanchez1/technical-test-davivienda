@@ -239,4 +239,19 @@ class JdbcDocumentRepositoryIT extends AbstractIntegrationTest {
         assertThat(documents.markFailed(document.id(), DocumentErrorCode.PROCESSING_FAILED, "Too late"))
                 .isFalse();
     }
+
+    @Test
+    void findsOnlyTheDocumentsLeftProcessingBeforeTheThreshold() {
+        Document oldest = documents.save(processing(checksum('r'), CREATED_AT));
+        Document older = documents.save(processing(checksum('s'), CREATED_AT.plusSeconds(60)));
+        documents.save(processing(checksum('t'), CREATED_AT.plusSeconds(600)));
+        documents.save(indexed(checksum('u'), CREATED_AT));
+
+        assertThat(documents.findStuckInProcessing(CREATED_AT.plusSeconds(120), 10))
+                .containsExactly(oldest.id(), older.id());
+        assertThat(documents.findStuckInProcessing(CREATED_AT.plusSeconds(120), 1))
+                .containsExactly(oldest.id());
+        assertThat(documents.findStuckInProcessing(CREATED_AT.minusSeconds(1), 10))
+                .isEmpty();
+    }
 }
