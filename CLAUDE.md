@@ -144,9 +144,9 @@ ORDER BY p.rank DESC;
 
 ## API
 - `POST /api/documents`: multipart `files` (1..`APP_MAX_FILES_PER_UPLOAD`) + `metadata` (JSON array aligned by index). Validate everything first; any invalid file → 422 with per-file errors and nothing stored. Stream uploads to disk, not memory.
-- Validation: extension allowlist (`.txt .md .markdown .pdf`), magic bytes (`%PDF-` for PDF; valid text without NUL bytes for TXT/MD), size ≤ `APP_MAX_FILE_SIZE_MB`, metadata via Bean Validation.
+- Validation: extension allowlist (`.txt .md .markdown .pdf`), magic bytes (`%PDF-` for PDF; TXT/MD must carry no binary control byte in the inspected prefix, so Latin-1 text still passes), size ≤ `APP_MAX_FILE_SIZE_MB`, metadata via Bean Validation. Servlet upload limits are derived from those two settings, never configured separately.
 - `GET /api/documents` (paginated, filter by status) · `GET /api/documents/:id` · `GET /api/documents/:id/content` (chunks, cursor-paginated, for the viewer) · `GET /api/documents/:id/file` (original, inline) · `GET /api/search` · `GET /api/events` · `GET /api/health` (db + rabbit).
-- Errors: RFC 9457 `application/problem+json` from one `@RestControllerAdvice`, including the request id: 400 validation, 404, 409 duplicate, 413 too large, 415 unsupported type, 422 invalid batch, 503 search timeout / dependency down.
+- Errors: RFC 9457 `application/problem+json` from one `@RestControllerAdvice`, including the request id: 400 validation, 404, 413 too large, 415 unsupported type, 422 invalid batch (a duplicate upload lands here as a per-file `UNIQUE_CHECKSUM` error carrying `existingDocumentId`), 409 only for the concurrent-insert race on the unique index, 503 search timeout / dependency down.
 
 ## Frontend
 - Routes: `/` search · `/upload` · `/documents` (list with live status) · `/documents/:id` viewer (`?q=` highlights terms and scrolls to the matched chunk).
@@ -215,8 +215,8 @@ ts_headline over all matches · any LIKE/ILIKE/regex fallback · processing insi
 ## Roadmap (one PR per phase)
 0. `chore/bootstrap`: pnpm workspace, TS strict, lint/format tooling, husky hooks (commitlint + attribution check), `.gitignore` (incl. `spec/`, `.claude/settings.local.json`, `target/`), `.env.example`, Spring Boot skeleton with `/api/health` + test, Spotless, `packages/shared` generated from OpenAPI, Vite React skeleton + test, compose (postgres + rabbitmq with healthchecks), `ci.yml` (quality, commits, unit, contract, build), PR template, docs skeletons.
 1. `feat/backend-foundation`: `@ConfigurationProperties`, `JdbcClient`, Flyway migrations, ProblemDetail advice, request id + structured logging, springdoc, health (db + rabbit), backend Dockerfile, ArchUnit, JaCoCo, CI integration job.
-2. `feat/document-upload`: HU-01 upload endpoint, validation, storage, repository, job publish after commit, list/detail/content endpoints, tests.
-3. `feat/document-processing`: worker profile, RabbitMQ consumers, extractors, chunkers, transactional indexing, ERROR path with error codes, dead-letter, status event publish, reconciler, tests.
+2. `feat/document-upload`: HU-01 upload endpoint, validation, storage, repository, the RabbitMQ topology (queue plus dead-letter exchange and queue) and job publish after commit, list/detail/content/file endpoints, tests.
+3. `feat/document-processing`: worker profile, RabbitMQ consumers, extractors, chunkers, transactional indexing, ERROR path with error codes and dead-lettering, status event publish, reconciler, tests.
 4. `feat/search`: HU-02 search endpoint, filters, statement timeout, tookMs + Server-Timing, integration tests.
 5. `feat/realtime-events`: HU-04 SSE endpoint, RabbitMQ fanout, heartbeat, tests.
 6. `feat/frontend-upload`: app shell, copy file, API client, global SSE provider, upload page, documents list with live status, web Dockerfile + nginx.
