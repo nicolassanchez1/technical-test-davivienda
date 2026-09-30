@@ -3,6 +3,7 @@ package io.github.nicolassanchez1.technicaltestdavivienda.shared.web;
 import io.github.nicolassanchez1.technicaltestdavivienda.documents.application.InvalidUploadException;
 import io.github.nicolassanchez1.technicaltestdavivienda.documents.application.UploadFileError;
 import io.github.nicolassanchez1.technicaltestdavivienda.documents.domain.DuplicateDocumentException;
+import io.github.nicolassanchez1.technicaltestdavivienda.search.application.InvalidSearchQueryException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.sql.SQLException;
@@ -57,6 +58,16 @@ public class ApiExceptionHandler {
             problem.setProperty("errors", fieldErrors(validation));
         }
         return problem;
+    }
+
+    /**
+     * Mapped on its own rather than through the generic bad request, because the caller can only
+     * fix a query that carries no searchable term if the answer says so.
+     */
+    @ExceptionHandler(InvalidSearchQueryException.class)
+    ProblemDetail handleInvalidSearchQuery(InvalidSearchQueryException exception, HttpServletRequest request) {
+        return problem(
+                HttpStatus.BAD_REQUEST, InvalidSearchQueryException.PROBLEM_TYPE, exception.getMessage(), request);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
