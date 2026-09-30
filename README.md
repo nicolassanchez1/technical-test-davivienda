@@ -71,6 +71,16 @@ docker compose up -d postgres rabbitmq api worker   # backend sin la web de ngin
 | `pnpm build`             | Empaqueta el backend y construye el frontend                       |
 | `pnpm contract:generate` | Regenera el contrato TypeScript desde el OpenAPI del backend       |
 
+## Documentos de ejemplo
+
+```bash
+pnpm seed
+```
+
+Carga el corpus de [`samples/`](./samples/README.md): seis documentos quedan `INDEXADO` y uno
+—un PDF escaneado sin capa de texto— termina en `ERROR`, que es el comportamiento correcto.
+Ese directorio documenta qué demuestra cada archivo y qué búsquedas conviene probar.
+
 ## Carga de documentos (HU-01)
 
 La carga es multipart y responde de inmediato: el documento queda en `PROCESANDO` y la
